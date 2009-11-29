@@ -53,9 +53,11 @@ def usage():
     print ("{-i  | --input} commands_file /dev/stdin for example")
     print ("[{-o | --output} output_file] log to file instead of stdout")
     print ("[{-v | --verbose}]            enables progress bar")
-    print ("[{-w | --workers}] n          working threads (default is " +
+    print ("[{-w | --workers} n]          working threads (default is " +
            str(get_nb_procs()) + ")")
     print ("                              must have: n > 0")
+    print ("[{-p | --post} script_file]   specify a python post processing ")
+    print ("                              script (not yet implemented)")
     sys.exit(0)
 
 # return cmd and its output as a parsable string like:
