@@ -31,6 +31,9 @@ on old systems too
 TODO:
  * add hook for post processing of (cmd, res) couples by using some
    python function/code from a user specified file
+ * add README file with some examples
+ * add a server mode
+ * add a client mode
  * profile this program with the python profiler
    check if semaphore would be more efficient than using python Queue
    objects
