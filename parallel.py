@@ -106,6 +106,7 @@ if __name__ == '__main__':
         output_to_file = False
         commands_file  = None
         output_file    = None
+        post_proc_fun  = None
         args           = sys.argv
         nb_threads     = get_nb_procs()
         output_param = first_index_lst(["-o","--output"], args)
@@ -126,6 +127,10 @@ if __name__ == '__main__':
             nb_threads = int(args[nb_workers_param + 1])
             if not nb_threads > 0:
                 usage()
+        post_proc_param = first_index_lst(["-p","--post"], args)
+        if post_proc_param != -1:
+            module = __import__(args[post_proc_param + 1])
+            post_proc_fun = module.post_proc
         commands_queue = Queue()
         results_queue  = Queue()
         nb_jobs        = 0
@@ -148,12 +153,18 @@ if __name__ == '__main__':
             res = results_queue.get()
             jobs_done = jobs_done + 1
             if output_to_file:
-                output_file.write(res + '\n')
+                if post_proc_fun == None:
+                    output_file.write(res + '\n')
+                else:
+                    output_file.write(post_proc_fun((res,"")))
             if show_progress:
                 progress_bar.updateAmount(jobs_done)
                 progress_bar.draw()
             elif not output_to_file:
-                print res
+                if post_proc_fun == None:
+                    print res
+                else:
+                    print post_proc_fun((res,""))
         # wait for everybody
         for l in locks:
             l.acquire()
