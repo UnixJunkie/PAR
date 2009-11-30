@@ -29,12 +29,11 @@ warning: keep this script compatible with python 2.4 so we can run it
 on old systems too
 
 TODO:
+ * add a server mode
+ * add a client mode
  * for -p|--post: return both (stdin, stdout and stderr to the user), not just
    (stdin, stdout) like actually, so that he can troubleshoot if some of his
    commands fail in error by reading their stderr
- * add README file with some examples
- * add a server mode
- * add a client mode
  * profile this program with the python profiler
    check if semaphore would be more efficient than using python Queue
    objects
