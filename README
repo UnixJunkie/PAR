@@ -1,0 +1,14 @@
+# Some usage examples:
+
+# run in parallel commands from test_parallel.input
+cat test_parallel.input | ./parallel.py -i /dev/stdin
+
+# same than before but with a progress bar
+cat test_parallel.input | ./parallel.py -i /dev/stdin -v
+
+# run in parallel commands from test_parallel.input and store output
+# in output.log
+./parallel.py -i test_parallel.input -o output.log
+
+# same than before but with a user defined output printer
+./parallel.py -i test_parallel.input -o output.log -p post_proc_example
