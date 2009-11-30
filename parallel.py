@@ -29,8 +29,9 @@ warning: keep this script compatible with python 2.4 so we can run it
 on old systems too
 
 TODO:
- * add hook for post processing of (cmd, res) couples by using some
-   python function/code from a user specified file
+ * for -p|--post: return both (stdin, stdout and stderr to the user), not just
+   (stdin, stdout) like actually, so that he can troubleshoot if some of his
+   commands fail in error by reading their stderr
  * add README file with some examples
  * add a server mode
  * add a client mode
@@ -56,16 +57,14 @@ def usage():
     print ("[{-w | --workers} n]          working threads (default is " +
            str(get_nb_procs()) + ")")
     print ("                              must have: n > 0")
-    print ("[{-p | --post} script_file]   specify a python post processing ")
-    print ("                              script (not yet implemented)")
+    print ("[{-p | --post} python_module] specify a post processing module")
+    print ("                              (omit the '.py' extension)")
     sys.exit(0)
 
 # return cmd and its output as a parsable string like:
 # cmd("cat myfile"):res("myfile_content")
-def echo_command(cmd):
-    cmd_str = cmd
-    cmd_out = commands.getoutput(cmd)
-    return "cmd(" + cmd_str + "):res(" + cmd_out + ")"
+def parsable_echo((cmd, cmd_out)):
+    return "cmd(" + cmd + "):res(" + cmd_out + ")"
 
 def get_nb_procs():
     return int(commands.getoutput("egrep -c '^processor' /proc/cpuinfo"))
@@ -74,8 +73,8 @@ def worker_wrapper(commands_queue, results_queue, lock):
     try:
         while (True):
             cmd = commands_queue.get(True, 1)
-            command_and_res = echo_command(cmd)
-            results_queue.put(command_and_res)
+            cmd_out = commands.getoutput(cmd)
+            results_queue.put((cmd, cmd_out))
     except Empty:
         lock.release()
 
@@ -150,21 +149,21 @@ if __name__ == '__main__':
         if show_progress:
             progress_bar.draw()
         while jobs_done < nb_jobs:
-            res = results_queue.get()
+            cmd_and_output = results_queue.get()
             jobs_done = jobs_done + 1
             if output_to_file:
                 if post_proc_fun == None:
-                    output_file.write(res + '\n')
+                    output_file.write(parsable_echo(cmd_and_output) + '\n')
                 else:
-                    output_file.write(post_proc_fun((res,"")))
+                    output_file.write(post_proc_fun(cmd_and_output) + '\n')
             if show_progress:
                 progress_bar.updateAmount(jobs_done)
                 progress_bar.draw()
             elif not output_to_file:
                 if post_proc_fun == None:
-                    print res
+                    print parsable_echo(cmd_and_output)
                 else:
-                    print post_proc_fun((res,""))
+                    print post_proc_fun(cmd_and_output)
         # wait for everybody
         for l in locks:
             l.acquire()
