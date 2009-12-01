@@ -29,6 +29,8 @@ warning: keep this script compatible with python 2.4 so we can run it
 on old systems too
 
 TODO:
+ * add a code coverage test, python is not compiled and pychecker is too
+   light at ckecking things
  * add a server mode
  * add a client mode
  * for -p|--post: return both (stdin, stdout and stderr to the user), not just
