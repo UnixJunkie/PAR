@@ -60,6 +60,7 @@ def usage():
     print ("                              must have: n > 0")
     print ("[{-p | --post} python_module] specify a post processing module")
     print ("                              (omit the '.py' extension)")
+    print ("[{-h | --help}]               this help message")
     sys.exit(0)
 
 # return cmd and its output as a parsable string like:
@@ -119,7 +120,7 @@ if __name__ == '__main__':
             commands_file_param = args[input_param + 1]
             commands_file  = open(commands_file_param, 'r')
         else:
-            usage()
+            usage() # -h | --help falls here also
         if first_index_lst(["-v","--verbose"], args) != -1:
             show_progress = True
         nb_workers_param = first_index_lst(["-w","--workers"], args)
