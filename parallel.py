@@ -33,6 +33,10 @@ TODO:
    light at ckecking things
  * add a server mode
  * add a client mode
+   the client mode should be able to take its list of commands from a
+   server instead of from a local file/stdin, in order to scale by using
+   hierarchical layers of parallel.py servers instead of having only one
+   server managing all the clients
  * for -p|--post: return both (stdin, stdout and stderr to the user), not just
    (stdin, stdout) like actually, so that he can troubleshoot if some of his
    commands fail in error by reading their stderr
