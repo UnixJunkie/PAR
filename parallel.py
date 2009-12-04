@@ -55,16 +55,16 @@ from Queue import Queue, Empty
 from ProgressBar import ProgressBar
 
 def usage():
-    print ("usage: ./parallel.py -i ...")
-    print ("{-i  | --input} commands_file /dev/stdin for example")
-    print ("[{-o | --output} output_file] log to file instead of stdout")
-    print ("[{-v | --verbose}]            enables progress bar")
-    print ("[{-w | --workers} n]          working threads (default is " +
+    print ("usage: ./parallel.py [options] -i ...")
+    print ("[-h | --help]               this help message")
+    print ("-i  | --input commands_file /dev/stdin for example")
+    print ("[-o | --output output_file] log to file instead of stdout")
+    print ("[-p | --post python_module] specify a post processing module")
+    print ("                            (omit the '.py' extension)")
+    print ("[-v | --verbose]            enables progress bar")
+    print ("[-w | --workers n]          working threads (default is " +
            str(get_nb_procs()) + ")")
-    print ("                              must have: n > 0")
-    print ("[{-p | --post} python_module] specify a post processing module")
-    print ("                              (omit the '.py' extension)")
-    print ("[{-h | --help}]               this help message")
+    print ("                            must have: n > 0")
     sys.exit(0)
 
 # return cmd and its output as a parsable string like:
