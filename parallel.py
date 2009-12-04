@@ -32,11 +32,19 @@ TODO:
  * add a code coverage test, python is not compiled and pychecker is too
    light at ckecking things
  * add a server mode
+   the server thread should just act like another worker thread, he also
+   takes jobs from the commands queue and fills in the result queue
  * add a client mode
    the client mode should be able to take its list of commands from a
    server instead of from a local file/stdin, in order to scale by using
    hierarchical layers of parallel.py servers instead of having only one
    server managing all the clients
+ * think about the security of the client-server model:
+   - a client shouldn't accept to execute commands from an untrusted server
+     (commands could be any Unix command, including rm)
+   - server shouldn't accept to give commands to untrusted clients
+     (this would deplete the commands list probably without doing the
+      corresponding jobs and sending back the results)
  * for -p|--post: return both (stdin, stdout and stderr to the user), not just
    (stdin, stdout) like actually, so that he can troubleshoot if some of his
    commands fail in error by reading their stderr
@@ -57,10 +65,15 @@ from ProgressBar import ProgressBar
 def usage():
     print ("usage: ./parallel.py [options] -i ...")
     print ("[-h | --help]               this help message")
+    print ("[-c | --client server port] UNIMPLEMENTED")
+    print ("                            read commands from a server")
+    print ("                            instead of a file")
     print ("-i  | --input commands_file /dev/stdin for example")
     print ("[-o | --output output_file] log to file instead of stdout")
     print ("[-p | --post python_module] specify a post processing module")
     print ("                            (omit the '.py' extension)")
+    print ("[-s | --server port]        UNIMPLEMENTED")
+    print ("                            accept clients to crunch jobs")
     print ("[-v | --verbose]            enables progress bar")
     print ("[-w | --workers n]          working threads (default is " +
            str(get_nb_procs()) + ")")
