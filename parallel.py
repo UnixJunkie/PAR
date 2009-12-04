@@ -25,20 +25,24 @@ parallel.
 'xargs -P' has something almost similar, but not exactly what we need.
 Your machine's number of cores is the default parallelization factor.
 
-warning: keep this script compatible with python 2.4 so we can run it
-on old systems too
+warning: keep this script compatible with python 2.4 so that we can run it
+         on old systems too
 
 TODO:
  * add a code coverage test, python is not compiled and pychecker is too
    light at ckecking things
  * add a server mode
    the server thread should just act like another worker thread, he also
-   takes jobs from the commands queue and fills in the result queue
+   takes jobs from the commands queue and fills in the result queue.
+   The server thread can only exit once all the jobs he sent to clients
+   were sent back a result (use a dictionary for this, maybe one day it will
+   be used to track lagging workers).
  * add a client mode
    the client mode should be able to take its list of commands from a
-   server instead of from a local file/stdin, in order to scale by using
-   hierarchical layers of parallel.py servers instead of having only one
-   server managing all the clients
+   server instead of from a local file/stdin.
+   The client could be at the same time a server for other clients in order to
+   scale by using hierarchical layers of servers instead of having only one
+   server managing too many clients (russian doll/fractal architecture)
  * think about the security of the client-server model:
    - a client shouldn't accept to execute commands from an untrusted server
      (commands could be any Unix command, including rm)
@@ -68,6 +72,7 @@ def usage():
     print ("[-c | --client server port] UNIMPLEMENTED")
     print ("                            read commands from a server")
     print ("                            instead of a file")
+    print ("                            use -c or -i, not both")
     print ("-i  | --input commands_file /dev/stdin for example")
     print ("[-o | --output output_file] log to file instead of stdout")
     print ("[-p | --post python_module] specify a post processing module")
