@@ -217,7 +217,7 @@ def server_wrapper(commands_queue, results_queue, lock, server_port):
                 client_conn.close()
                 sock_fd_dict.pop(fd)
                 nb_received_jobs += 1
-                results_queue.put(("",result)) # FBR: put unparsed result
+                results_queue.put(parse_cmd_echo(result))
                 #print "server: got one job"
                 #print "nb jobs received: " + str(nb_received_jobs)
             else:
