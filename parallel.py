@@ -29,10 +29,7 @@ warning: keep this script compatible with python 2.4 so that we can run it
          on old systems too
 
 TODO:
- * use Pyro instead of my beginner code
-   - use the Master
-   - use the Worker
- * test this:
+ * implement this ?
    The client could be at the same time a server for other clients in order to
    scale by using hierarchical layers of servers instead of having only one
    server managing too many clients (russian doll/fractal architecture)
@@ -54,12 +51,12 @@ TODO:
    exception:  exceptions.ZeroDivisionError
 """
 
-import commands, string, sys, thread
+import commands, os, string, sys, time, thread
 import Pyro.core, Pyro.naming
 
 from Queue import Queue, Empty
 from ProgressBar import ProgressBar
-from Pyro.errors import PyroError, NamingError
+from Pyro.errors import PyroError, NamingError, ConnectionClosedError
 
 class Master(Pyro.core.ObjBase):
     def __init__(self, commands_q, results_q):
@@ -82,21 +79,20 @@ class Master(Pyro.core.ObjBase):
         self.jobs_queue.put(cmd)
 
 def usage():
-#     print ("Usage: parallel.py [options] -i | -c ...")
-    print ("Usage: parallel.py [options] -i ...")
+    print ("Usage: parallel.py [options] -i | -c ...")
     print ("Execute commands in parallel.")
     print ("")
     print ("  [-h | --help]               you are currently reading it")
-#     print ("  -c  | --client host port    BETA/EXPERIMENTAL feature")
-#     print ("                              read commands from a server")
-#     print ("                              instead of a file")
-#     print ("                              use -c or -i, not both")
+    print ("  -c  | --client              BETA/EXPERIMENTAL feature")
+    print ("                              read commands from a server")
+    print ("                              instead of a file")
+    print ("                              use -c or -i, not both")
     print ("  -i  | --input commands_file /dev/stdin for example")
     print ("  [-o | --output output_file] log to a file instead of stdout")
     print ("  [-p | --post python_module] specify a post processing module")
     print ("                              (omit the '.py' extension)")
-#     print ("  [-s | --server port]        BETA/EXPERIMENTAL feature")
-#     print ("                              accept remote workers")
+    print ("  [-s | --server]             BETA/EXPERIMENTAL feature")
+    print ("                              accept remote workers")
     print ("  [-v | --verbose]            enables progress bar")
     print ("  [-w | --workers n]          local worker threads (default is " +
            str(get_nb_procs()) + ")")
@@ -129,13 +125,23 @@ def parse_cmd_echo(cmd_and_output):
 def get_nb_procs():
     return int(commands.getoutput("egrep -c '^processor' /proc/cpuinfo"))
 
-def local_worker_wrapper(master, lock):
-    work = master.get_work()
-    while work != "":
-        cmd_out = commands.getoutput(work)
-        master.put_result((work, cmd_out))
+def worker_wrapper(master, lock):
+    try:
         work = master.get_work()
+        while work != "":
+            cmd_out = commands.getoutput(work)
+            master.put_result((work, cmd_out))
+            work = master.get_work()
+    except ConnectionClosedError: # server closed because no more jobs to send
+        pass
     lock.release()
+
+# a pair parameter is required by start_new_thread,
+# hence the unused '_' parameter
+def master_wrapper(daemon, _):
+    # start infinite loop
+    print 'Master started'
+    daemon.requestLoop()
 
 # return index in lst of the first element from elt_lst found in lst
 # return -1 if none found
@@ -165,6 +171,7 @@ if __name__ == '__main__':
         commands_file      = None
         output_file        = None
         post_proc_fun      = None
+        daemon             = None
         args               = sys.argv
         local_server_port  = -1
         remote_server_port = -1
@@ -181,8 +188,7 @@ if __name__ == '__main__':
             commands_file_param = args[input_param + 1]
             commands_file  = open(commands_file_param, 'r')
         elif remote_server_param == -1:
-#             print "-i or -c is mandatory"
-            print "-i is mandatory"
+            print "-i or -c is mandatory"
             usage() # -h | --help falls here also
         if first_index_lst(["-v","--verbose"], args) != -1:
             show_progress = True
@@ -197,12 +203,15 @@ if __name__ == '__main__':
             post_proc_fun = module.post_proc
         local_server_param = first_index_lst(["-s","--server"], args)
         if local_server_param != -1:
-            local_server_port = int(args[local_server_param + 1])
+#             local_server_port = int(args[local_server_param + 1])
+            local_server_port = 0
         if remote_server_param != -1:
-            remote_server_name = args[remote_server_param + 1]
-            remote_server_port = int(args[remote_server_param + 2])
-            print ("connecting to " + remote_server_name + ':' +
-                   str(remote_server_port))
+#             remote_server_name = args[remote_server_param + 1]
+#             remote_server_port = int(args[remote_server_param + 2])
+            remote_server_name = "server"
+            remote_server_port = 0
+#             print ("connecting to " + remote_server_name + ':' +
+#                    str(remote_server_port))
         # check options coherency
         if input_param != -1 and remote_server_param != -1:
             print "error: -c and -i are exclusive"
@@ -212,36 +221,47 @@ if __name__ == '__main__':
         master = Master(commands_queue, results_queue)
         nb_jobs        = 0
         locks          = []
-#         if local_server_port != -1:
-#             l = thread.allocate_lock()
-#             l.acquire()
-#             locks.append(l)
-#             thread.start_new_thread(server_wrapper,
-#                                     (commands_queue, results_queue, l,
-#                                      local_server_port))
+        if local_server_port != -1:
+            print os.system("pyro-ns & ") # start nameserver (NS)
+            time.sleep(6) # wait for NS to start
+            Pyro.core.initServer()
+            daemon = Pyro.core.Daemon()
+            print 'Locating Name Server...'
+            locator = Pyro.naming.NameServerLocator()
+            ns = locator.getNS()
+            daemon.useNameServer(ns)
+            # connect a new object (unregister previous one first)
+            try:
+                # 'master' is our outside world name
+                ns.unregister('master')
+            except NamingError:
+                pass
+            # publish master object
+            daemon.connect(master,'master')
+            thread.start_new_thread(master_wrapper, (daemon, None))
         if input_param != -1:
             # read jobs from local file
             for cmd in commands_file:
                 master.add_job(string.strip(cmd))
                 nb_jobs += 1
         if remote_server_port != -1 and remote_server_name != "":
-            pass
-            # start clients of remote server
-#             for i in range(nb_threads):
-#                 l = thread.allocate_lock()
-#                 l.acquire()
-#                 locks.append(l)
-#                 thread.start_new_thread(remote_worker_wrapper,
-#                                         (l,
-#                                          remote_server_name,
-#                                          remote_server_port))
-        else: # start local workers
-            for i in range(nb_threads):
-                l = thread.allocate_lock()
-                l.acquire()
-                locks.append(l)
-                thread.start_new_thread(local_worker_wrapper,
-                                        (master, l))
+            print 'Locating Name Server...'
+            locator = Pyro.naming.NameServerLocator()
+            ns = locator.getNS()
+            try:
+                print 'Locating master...'
+                URI = ns.resolve('master')
+                print 'URI:',URI
+            except NamingError,x:
+                print "Couldn't find object, nameserver says:",x
+                raise SystemExit
+            # replace master by its proxy for the remote object
+            master = Pyro.core.getProxyForURI(URI)
+        for i in range(nb_threads):
+            l = thread.allocate_lock()
+            l.acquire()
+            locks.append(l)
+            thread.start_new_thread(worker_wrapper, (master, l))
         if input_param != -1:
             progress_bar = ProgressBar(0, nb_jobs, 60)
             # output everything
@@ -271,6 +291,10 @@ if __name__ == '__main__':
         # wait for everybody
         for l in locks:
             l.acquire()
+        # stop pyro server-side stuff
+        if daemon != None:
+            daemon.disconnect(master)
+            daemon.shutdown()
     except SystemExit:
         pass
     except: # unexpected one
