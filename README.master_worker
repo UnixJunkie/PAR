@@ -16,6 +16,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+# default Pyro nameserver port is 9090
+# default Pyro callback   port is 7766
+# they must not be firewalled in order for client to reach the server
+
 # To test:
 # 1) run nameserver in one session
 pyro-ns
