@@ -83,7 +83,9 @@ def usage():
     print ("Execute commands in parallel.")
     print ("")
     print ("  [-h | --help]               you are currently reading it")
-    print ("  -c  | --client              BETA/EXPERIMENTAL feature")
+    print ("  -c  | --client server port  BETA/EXPERIMENTAL feature")
+    print ("                              server is Pyro nameserver")
+    print ("                              port is Pyro nameserver port")
     print ("                              read commands from a server")
     print ("                              instead of a file")
     print ("                              use -c or -i, not both")
@@ -134,6 +136,7 @@ def worker_wrapper(master, lock):
             work = master.get_work()
     except ConnectionClosedError: # server closed because no more jobs to send
         pass
+    print "no more jobs for me, leaving"
     lock.release()
 
 # a pair parameter is required by start_new_thread,
@@ -203,15 +206,12 @@ if __name__ == '__main__':
             post_proc_fun = module.post_proc
         local_server_param = first_index_lst(["-s","--server"], args)
         if local_server_param != -1:
+            # could be used later on to change Pyro NS port we start
 #             local_server_port = int(args[local_server_param + 1])
             local_server_port = 0
         if remote_server_param != -1:
-#             remote_server_name = args[remote_server_param + 1]
-#             remote_server_port = int(args[remote_server_param + 2])
-            remote_server_name = "server"
-            remote_server_port = 0
-#             print ("connecting to " + remote_server_name + ':' +
-#                    str(remote_server_port))
+            remote_server_name = args[remote_server_param + 1]
+            remote_server_port = int(args[remote_server_param + 2])
         # check options coherency
         if input_param != -1 and remote_server_param != -1:
             print "error: -c and -i are exclusive"
@@ -247,7 +247,8 @@ if __name__ == '__main__':
         if remote_server_port != -1 and remote_server_name != "":
             print 'Locating Name Server...'
             locator = Pyro.naming.NameServerLocator()
-            ns = locator.getNS()
+            ns = locator.getNS(host=remote_server_name,
+                               port=remote_server_port)
             try:
                 print 'Locating master...'
                 URI = ns.resolve('master')
