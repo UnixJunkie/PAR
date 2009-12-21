@@ -37,11 +37,17 @@ TODO:
    - a client shouldn't accept to execute commands from an untrusted server
      (commands could be any Unix command, including rm)
    - server shouldn't accept to give commands to untrusted clients
-     (this would deplete the commands list probably without doing the
-      corresponding jobs and sending back the results)
+     (this would deplete the commands list, probably without doing the
+      corresponding jobs, and this would expose the commands)
+   - a client for which command execution result in errors should not be able
+     to deplete the commands list (at least, we should detect they were not
+     performed and reschedule them later on. At most, we should not send him
+     commands too fast)
  * for -p|--post: return both (stdin, stdout and stderr to the user), not just
    (stdin, stdout) like actually, so that he can troubleshoot if some of his
-   commands fail in error by reading their stderr
+   commands fail in error by reading their stderr.
+   Also, this could be quite useful in order to propagate in a parallel pipe
+   all the information needed by downstream workers.
  * profile with the python profiler
  * add a code coverage test, python is not compiled and pychecker is too
    light at ckecking things
