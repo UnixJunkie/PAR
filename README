@@ -1,3 +1,9 @@
+# you need to install Pyro, cf. http://pyro.sourceforge.net
+# (sudo yum install pyro _OR_ sudo aptitude install pyro)
+# On the server, TCP port 7766 must be open
+#                TCP port 9090 must also be open if the server is also
+#                the Pyro nameserver (default case)
+
 # Some usage examples:
 
 # run in parallel commands from test_parallel.input
@@ -12,3 +18,10 @@ cat test_parallel.input | ./parallel.py -i /dev/stdin -v
 
 # same than before but with a user defined output printer
 ./parallel.py -i test_parallel.input -o output.log -p post_proc_example
+
+## real world usage example
+# 1) server side
+./parallel.py -v -i many_commands.sh -o par_many_commands.log -s
+# 2) client side, on each machine you want to join the computation
+./parallel.py -c [nameserver_hostname] 9090
+# 3) be thrilled! ;)
