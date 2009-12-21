@@ -29,6 +29,11 @@ warning: keep this script compatible with python 2.4 so that we can run it
          on old systems too
 
 TODO:
+ * change options syntax in order to make them even more easy to parse
+   before this, have a look at option management in Python to see if
+   there is already some library very simple and nice to do the job
+ * main became a pretty big function, cut it into subfunctions so we
+   can read it on one screen
  * implement this ?
    The client could be at the same time a server for other clients in order to
    scale by using hierarchical layers of servers instead of having only one
