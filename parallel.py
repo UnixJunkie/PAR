@@ -45,10 +45,6 @@ TODO:
  * profile with the python profiler
  * add a code coverage test, python is not compiled and pychecker is too
    light at ckecking things
- * correct this harmless bug (program should exit cleanly instead of
-   throwing an exception):
-   user@host# parallel.py -i /dev/null
-   exception:  exceptions.ZeroDivisionError
 """
 
 import commands, os, string, sys, time, thread
@@ -139,12 +135,14 @@ def worker_wrapper(master, lock):
     print "no more jobs for me, leaving"
     lock.release()
 
+pyro_daemon_loop_cond = True
+
 # a pair parameter is required by start_new_thread,
 # hence the unused '_' parameter
 def master_wrapper(daemon, _):
     # start infinite loop
     print 'Master started'
-    daemon.requestLoop()
+    daemon.requestLoop(condition=lambda: pyro_daemon_loop_cond)
 
 # return index in lst of the first element from elt_lst found in lst
 # return -1 if none found
@@ -285,7 +283,8 @@ if __name__ == '__main__':
                         print parsable_echo(cmd_and_output)
                     else:
                         print post_proc_fun(cmd_and_output)
-            # close all files
+            # cleanup
+            pyro_daemon_loop_cond = False
             commands_file.close()
             if output_to_file:
                 output_file.close()
