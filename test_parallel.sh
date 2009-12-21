@@ -24,7 +24,7 @@ set -x
 rm -f test_parallel.output
 
 cat test_parallel.input | ./parallel.py -i /dev/stdin | cut -d':' -f2 |\
-sed "s/^res(//g" | sed "s/)$//g" | sort -n > \
+sed "s/^res(//g" | sed "s/)$//g" | grep -v "no more jobs for me" | sort -n > \
 test_parallel.output
 
 diff test_parallel.output test_parallel.output.reference
