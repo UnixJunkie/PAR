@@ -22,9 +22,15 @@
 set -x
 
 rm -f test_parallel.output
+nb_procs=""
 
-cat test_parallel.input | ./parallel.py -i /dev/stdin | cut -d':' -f2 |\
-sed "s/^res(//g" | sed "s/)$//g" | grep -v "no more jobs for me" | sort -n > \
-test_parallel.output
+# non Linux hosts must provide -w option
+if [ ! -f /proc/cpuinfo ] ; then
+    nb_procs="-w 2"
+fi
+
+cat test_parallel.input | ./parallel.py -i /dev/stdin $nb_procs \
+| cut -d':' -f2 | sed "s/^res(//g" | sed "s/)$//g" | \
+grep -v "no more jobs for me" | sort -n > test_parallel.output
 
 diff test_parallel.output test_parallel.output.reference
