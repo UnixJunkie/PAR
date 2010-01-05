@@ -101,9 +101,8 @@ def usage():
     print ("                              (omit the '.py' extension)")
     print ("  [-s | --server]             accept remote workers")
     print ("  [-v | --verbose]            enables progress bar")
-    print ("  [-w | --workers n]          local worker threads (default is " +
-           str(get_nb_procs()) + ")")
-    print ("                              must have: n >= 0")
+    print ("  [-w | --workers n]          number of local worker threads")
+    print ("                              must have n >= 0")
     print ("                              n == 0 can be useful to only run")
     print ("                                     the server")
     sys.exit(0)
@@ -130,7 +129,13 @@ def parse_cmd_echo(cmd_and_output):
     return (cmd, cmd_out)
 
 def get_nb_procs():
-    return int(commands.getoutput("egrep -c '^processor' /proc/cpuinfo"))
+    cpuinfo = "/proc/cpuinfo" # some OS don't have this file
+    res = None
+    try:
+        res = int(commands.getoutput("egrep -c '^processor' " + cpuinfo))
+    except:
+        res = 0
+    return res
 
 def worker_wrapper(master, lock):
     try:
@@ -207,6 +212,10 @@ if __name__ == '__main__':
             nb_threads = int(args[nb_workers_param + 1])
             if nb_threads < 0:
                 usage()
+        elif nb_threads == 0:
+            print ("fatal: unable to find the number of CPU, "
+                   "use the -w option")
+            usage()
         post_proc_param = first_index_lst(["-p","--post"], args)
         if post_proc_param != -1:
             module = __import__(args[post_proc_param + 1])
