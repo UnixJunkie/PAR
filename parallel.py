@@ -29,6 +29,9 @@ warning: keep this script compatible with python 2.4 so that we can run it
          on old systems too
 
 TODO:
+ * add a distributed test and also another but parallel and distributed
+   I just did one by hand, it is not so difficult using ssh and commands
+   that just sleep some time then echo something else
  * reference and thank Pyro in some way, as we use it and it is a
    key component for us
  * put this TODO somewhere else, it begins to be too big
