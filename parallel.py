@@ -58,7 +58,7 @@ TODO:
    light at ckecking things
 """
 
-import commands, os, string, sys, time, thread
+import commands, os, socket, string, sys, time, thread
 import Pyro.core, Pyro.naming
 
 from Queue import Queue, Empty
@@ -179,6 +179,8 @@ def first_index_lst(elt_lst, lst):
             break
     return res
 
+default_pyro_ns_port = 9090
+
 if __name__ == '__main__':
     try:
         show_progress      = False
@@ -238,13 +240,15 @@ if __name__ == '__main__':
         nb_jobs        = 0
         locks          = []
         if local_server_port != -1:
+            # FBR: use programming instead of command line
             print os.system("pyro-ns & ") # start nameserver (NS)
             time.sleep(6) # wait for NS to start
             Pyro.core.initServer()
             daemon = Pyro.core.Daemon()
             print 'Locating Name Server...'
             locator = Pyro.naming.NameServerLocator()
-            ns = locator.getNS()
+            ns = locator.getNS(socket.getfqdn(),
+                               port=default_pyro_ns_port)
             daemon.useNameServer(ns)
             # connect a new object (unregister previous one first)
             try:
