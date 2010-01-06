@@ -93,9 +93,7 @@ def usage():
     print ("Execute commands in parallel.")
     print ("")
     print ("  [-h | --help]               you are currently reading it")
-    print ("  -c  | --client server port  server is Pyro nameserver")
-    print ("                              port is Pyro nameserver port")
-    print ("                              read commands from a server")
+    print ("  -c  | --client servername   read commands from a server")
     print ("                              instead of a file")
     print ("                              use -c or -i, not both")
     print ("  -i  | --input commands_file /dev/stdin for example")
@@ -179,10 +177,10 @@ def nameserver_wrapper(starter, _):
     Guards = (None,None)
     print '*** Starting Pyro Name Server ***'
     try:
-        starter.start(host,port,bcport,keep,persistent,dbdir,Guards,
-                      allowmultiple,dontlookupother,verbose,
-                      role=(role,roleArgs),bcaddr=bcaddr,
-                      nobroadcast=nobroadcast)
+        starter.start(host, port, bcport, keep, persistent, dbdir, Guards,
+                      allowmultiple, dontlookupother, verbose,
+                      role = (role, roleArgs), bcaddr = bcaddr,
+                      nobroadcast = nobroadcast)
     except (Pyro.errors.NamingError, Pyro.errors.DaemonError),x:
         print "error while starting Pyro nameserver:" + x
         pass
@@ -229,7 +227,6 @@ if __name__ == '__main__':
         daemon             = None
         args               = sys.argv
         local_server_port  = -1
-        remote_server_port = -1
         remote_server_name = ""
         nb_threads         = get_nb_procs()
         output_param = first_index_lst(["-o","--output"], args)
@@ -267,7 +264,6 @@ if __name__ == '__main__':
             local_server_port = 0
         if remote_server_param != -1:
             remote_server_name = args[remote_server_param + 1]
-            remote_server_port = int(args[remote_server_param + 2])
         # check options coherency
         if input_param != -1 and remote_server_param != -1:
             print "error: -c and -i are exclusive"
@@ -287,7 +283,7 @@ if __name__ == '__main__':
             print 'Locating Name Server...'
             locator = Pyro.naming.NameServerLocator()
             nameserver = locator.getNS(socket.getfqdn(),
-                                       port=default_pyro_ns_port)
+                                       port = default_pyro_ns_port)
             daemon.useNameServer(nameserver)
             # connect a new object (unregister previous one first)
             try:
@@ -303,11 +299,11 @@ if __name__ == '__main__':
             for cmd in commands_file:
                 master.add_job(string.strip(cmd))
                 nb_jobs += 1
-        if remote_server_port != -1 and remote_server_name != "":
+        if remote_server_name != "":
             print 'Locating Name Server...'
             locator = Pyro.naming.NameServerLocator()
-            ns = locator.getNS(host=remote_server_name,
-                               port=remote_server_port)
+            ns = locator.getNS(host = remote_server_name,
+                               port = default_pyro_ns_port)
             try:
                 print 'Locating master...'
                 URI = ns.resolve('master')
