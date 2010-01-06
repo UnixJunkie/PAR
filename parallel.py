@@ -29,15 +29,18 @@ warning: keep this script compatible with python 2.4 so that we can run it
          on old systems too
 
 TODO:
+ * reference and thank Pyro in some way, as we use it and it is a
+   key component for us
+ * put this TODO somewhere else, it begins to be too big
  * change options syntax in order to make them even more easy to parse
    before this, have a look at option management in Python to see if
    there is already some library very simple and nice to do the job
- * main became a pretty big function, cut it into subfunctions so we
+ * main became a pretty big function, cut it into sub-functions so we
    can read it on one screen
  * implement this ?
    The client could be at the same time a server for other clients in order to
    scale by using hierarchical layers of servers instead of having only one
-   server managing too many clients (russian doll/fractal architecture)
+   server managing too many clients (Russian doll/fractal architecture)
  * think about the security of the client-server model:
    - a client shouldn't accept to execute commands from an untrusted server
      (commands could be any Unix command, including rm)
@@ -55,7 +58,7 @@ TODO:
    all the information needed by downstream workers.
  * profile with the python profiler
  * add a code coverage test, python is not compiled and pychecker is too
-   light at ckecking things
+   light at checking things
 """
 
 import commands, os, socket, string, sys, time, thread
@@ -149,6 +152,41 @@ def worker_wrapper(master, lock):
     print "no more jobs for me, leaving"
     lock.release()
 
+# Pyro nameserver thread setup and start
+# a pair parameter is required by start_new_thread,
+# hence the unused '_' parameter
+def nameserver_wrapper(starter, _):
+    # Options and behavior we want:
+    # -x: no broadcast listener
+    # -m: several nameservers on same network OK
+    # -r: don't try to find any other nameserver
+    # cf. Pyro-3.10/Pyro/naming.py if you need to change/understand code below
+    host = None
+    port = None
+    if port:
+        port = int(port)
+    bcport = 0
+    bcaddr = None
+    nobroadcast = True
+    role = Pyro.constants.NSROLE_SINGLE
+    roleArgs = None
+    verbose = False
+    keep = False
+    allowmultiple = True
+    dontlookupother = True
+    persistent = 0
+    dbdir = None
+    Guards = (None,None)
+    print '*** Starting Pyro Name Server ***'
+    try:
+        starter.start(host,port,bcport,keep,persistent,dbdir,Guards,
+                      allowmultiple,dontlookupother,verbose,
+                      role=(role,roleArgs),bcaddr=bcaddr,
+                      nobroadcast=nobroadcast)
+    except (Pyro.errors.NamingError, Pyro.errors.DaemonError),x:
+        print "error while starting Pyro nameserver:" + x
+        pass
+
 pyro_daemon_loop_cond = True
 
 # a pair parameter is required by start_new_thread,
@@ -240,20 +278,21 @@ if __name__ == '__main__':
         nb_jobs        = 0
         locks          = []
         if local_server_port != -1:
-            # FBR: use programming instead of command line
-            print os.system("pyro-ns & ") # start nameserver (NS)
-            time.sleep(6) # wait for NS to start
+            starter = Pyro.naming.NameServerStarter()
+            thread.start_new_thread(nameserver_wrapper, (starter, None))
+            while not starter.waitUntilStarted():
+                time.sleep(0.1)
             Pyro.core.initServer()
             daemon = Pyro.core.Daemon()
             print 'Locating Name Server...'
             locator = Pyro.naming.NameServerLocator()
-            ns = locator.getNS(socket.getfqdn(),
-                               port=default_pyro_ns_port)
-            daemon.useNameServer(ns)
+            nameserver = locator.getNS(socket.getfqdn(),
+                                       port=default_pyro_ns_port)
+            daemon.useNameServer(nameserver)
             # connect a new object (unregister previous one first)
             try:
                 # 'master' is our outside world name
-                ns.unregister('master')
+                nameserver.unregister('master')
             except NamingError:
                 pass
             # publish master object
