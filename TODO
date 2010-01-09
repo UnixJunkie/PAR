@@ -1,7 +1,5 @@
 MUST DO
 -------
-* reference and thank Pyro in some way, as we use it and it is a
-  key component for us
 * change options syntax in order to make them even more easy to parse
   before this, have a look at option management in Python to see if
   there is already some library very simple and nice to do the job
