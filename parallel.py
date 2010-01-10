@@ -186,30 +186,30 @@ default_pyro_ns_port = 9090
 
 if __name__ == '__main__':
     try:
-        (options, optargs)  = parser.parse_args()
-        show_progress       = options.is_verbose
-        commands_file_param = options.commands_file
-        read_from_file      = commands_file_param != None
-        output_file_param   = options.output_file
-        output_to_file      = output_file_param != None
-        remote_server_name  = options.server_name
-        connect_to_server   = remote_server_name != None
-        nb_workers          = options.nb_local_workers
-        post_proc_fun_param = options.post_proc
-        has_post_proc_fun   = post_proc_fun_param != None
-        is_server           = options.is_server
-        daemon              = None
-        post_proc_fun       = None
-        args                = sys.argv
-        nb_threads          = get_nb_procs() # default automatic detection
+        (options, optargs)    = parser.parse_args()
+        show_progress         = options.is_verbose
+        commands_file_option  = options.commands_file
+        read_from_file        = commands_file_option != None
+        output_file_option    = options.output_file
+        output_to_file        = output_file_option != None
+        remote_server_name    = options.server_name
+        connect_to_server     = remote_server_name != None
+        nb_workers            = options.nb_local_workers
+        has_nb_workers_option = nb_workers != None
+        post_proc_option      = options.post_proc
+        post_proc_fun         = None
+        has_post_proc_option  = post_proc_option != None
+        is_server             = options.is_server
+        daemon                = None
+        nb_threads            = get_nb_procs() # default automatic detection
         if output_to_file:
-            output_file = open(output_file_param, 'a')
+            output_file = open(output_file_option, 'a')
         if read_from_file:  # mandatory option
-            commands_file  = open(commands_file_param, 'r')
+            commands_file  = open(commands_file_option, 'r')
         elif not connect_to_server:
             print "-i or -c is mandatory"
             usage() # -h | --help falls here also
-        if nb_workers != None:
+        if has_nb_workers_option:
             nb_threads = int(nb_workers)
             if nb_threads < 0:
                 usage()
@@ -217,8 +217,8 @@ if __name__ == '__main__':
             print ("fatal: unable to find the number of CPU, "
                    "use the -w option")
             usage()
-        if has_post_proc_fun:
-            module = __import__(post_proc_fun_param)
+        if has_post_proc_option:
+            module = __import__(post_proc_option)
             post_proc_fun = module.post_proc
         # check options coherency
         if read_from_file and connect_to_server:
@@ -284,18 +284,18 @@ if __name__ == '__main__':
                 cmd_and_output = results_queue.get()
                 jobs_done += 1
                 if output_to_file:
-                    if not has_post_proc_fun:
-                        output_file.write(parsable_echo(cmd_and_output) + '\n')
-                    else:
+                    if has_post_proc_option:
                         output_file.write(post_proc_fun(cmd_and_output) + '\n')
+                    else:
+                        output_file.write(parsable_echo(cmd_and_output) + '\n')
                 if show_progress:
                     progress_bar.updateAmount(jobs_done)
                     progress_bar.draw()
                 elif not output_to_file:
-                    if not has_post_proc_fun:
-                        print parsable_echo(cmd_and_output)
+                    if has_post_proc_option:
+                        post_proc_fun(cmd_and_output)
                     else:
-                        print post_proc_fun(cmd_and_output)
+                        print parsable_echo(cmd_and_output)
             # cleanup
             pyro_daemon_loop_cond = False
             commands_file.close()
@@ -305,7 +305,7 @@ if __name__ == '__main__':
         for l in locks:
             l.acquire()
         # stop pyro server-side stuff
-        if daemon != None:
+        if is_server:
             daemon.disconnect(master)
             daemon.shutdown()
     except SystemExit:
