@@ -199,6 +199,10 @@ parser.add_option("-w", "--workers",
                           "default is number of detected cores, very probably "
                           "0 if your OS is not Linux"))
 
+def usage():
+    parser.print_help()
+    sys.exit(0)
+
 default_pyro_ns_port = 9090
 
 if __name__ == '__main__':
@@ -217,26 +221,27 @@ if __name__ == '__main__':
         local_server_port   = -1
         nb_threads          = get_nb_procs()
         # FBR: verify mandatory options are present
-        #      verify options coherency
+        #      verify options coherency, do it here instead of having
+        #      it spread all over the place
         if output_to_file:
             output_file = open(output_file_param, 'a')
         remote_server_param = first_index_lst(["-c","--client"], args)
         if read_from_file:  # mandatory option
             commands_file  = open(commands_file_param, 'r')
-        elif remote_server_param == -1:
+        elif not connect_to_server:
             print "-i or -c is mandatory"
-            parser.print_help() # -h | --help falls here also
+            usage() # -h | --help falls here also
         if first_index_lst(["-v","--verbose"], args) != -1:
             show_progress = True
         nb_workers_param = first_index_lst(["-w","--workers"], args)
         if nb_workers_param != -1:
             nb_threads = int(args[nb_workers_param + 1])
             if nb_threads < 0:
-                parser.print_help()
+                usage()
         elif nb_threads == 0:
             print ("fatal: unable to find the number of CPU, "
                    "use the -w option")
-            parser.print_help()
+            usage()
         post_proc_param = first_index_lst(["-p","--post"], args)
         if post_proc_param != -1:
             module = __import__(args[post_proc_param + 1])
@@ -247,9 +252,9 @@ if __name__ == '__main__':
 #             local_server_port = int(args[local_server_param + 1])
             local_server_port = 0
         # check options coherency
-        if read_from_file and remote_server_param != -1:
+        if read_from_file and connect_to_server:
             print "error: -c and -i are exclusive"
-            parser.print_help()
+            usage()
         commands_queue = Queue()
         results_queue  = Queue()
         master = Master(commands_queue, results_queue)
