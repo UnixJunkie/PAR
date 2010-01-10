@@ -4,6 +4,8 @@ MUST DO
   before this, have a look at option management in Python to see if
   there is already some library very simple and nice to do the job
   optparse seems to be the way to go
+* make the NS thread a daemon one, this looks like the standard way
+  to go in Python
 * main became a pretty big function, cut it into sub-functions so we
   can read it on one screen
 * for -p|--post: return both (stdin, stdout and stderr to the user), not just
