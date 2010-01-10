@@ -205,9 +205,9 @@ if __name__ == '__main__':
     try:
         (options, optargs) = parser.parse_args()
         show_progress      = options.is_verbose
-        output_to_file     = options.output_file != None
         commands_file      = options.commands_file
         output_file        = options.output_file
+        output_to_file     = output_file != None
         post_proc_fun      = options.post_proc
         daemon             = None
         args               = sys.argv
