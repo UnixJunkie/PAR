@@ -144,27 +144,6 @@ def master_wrapper(daemon, _):
     print 'Master started'
     daemon.requestLoop(condition=lambda: pyro_daemon_loop_cond)
 
-# return index in lst of the first element from elt_lst found in lst
-# return -1 if none found
-def first_index_lst(elt_lst, lst):
-    # return index of elt in lst, -1 if not found
-    def first_index(elt, lst):
-        res = -1
-        n = len(lst)
-        i = 0
-        while i < n and lst[i] != elt:
-            i = i+1
-        if i < n:
-            res = i
-        return res
-    res = -1
-    for elt in elt_lst:
-        idx = first_index(elt, lst)
-        if idx != -1:
-            res = idx
-            break
-    return res
-
 optparse_usage = """Usage: %prog [options] {-i | -c} ...
 Execute commands in a parallel and/or distributed way."""
 
@@ -215,42 +194,32 @@ if __name__ == '__main__':
         output_to_file      = output_file_param != None
         remote_server_name  = options.server_name
         connect_to_server   = remote_server_name != None
-        post_proc_fun       = options.post_proc
+        nb_workers          = options.nb_local_workers
+        post_proc_fun_param = options.post_proc
+        has_post_proc_fun   = post_proc_fun_param != None
+        is_server           = options.is_server
         daemon              = None
+        post_proc_fun       = None
         args                = sys.argv
-        local_server_port   = -1
-        nb_threads          = get_nb_procs()
-        # FBR: verify mandatory options are present
-        #      verify options coherency, do it here instead of having
-        #      it spread all over the place
+        nb_threads          = get_nb_procs() # default automatic detection
         if output_to_file:
             output_file = open(output_file_param, 'a')
-        remote_server_param = first_index_lst(["-c","--client"], args)
         if read_from_file:  # mandatory option
             commands_file  = open(commands_file_param, 'r')
         elif not connect_to_server:
             print "-i or -c is mandatory"
             usage() # -h | --help falls here also
-        if first_index_lst(["-v","--verbose"], args) != -1:
-            show_progress = True
-        nb_workers_param = first_index_lst(["-w","--workers"], args)
-        if nb_workers_param != -1:
-            nb_threads = int(args[nb_workers_param + 1])
+        if nb_workers != None:
+            nb_threads = int(nb_workers)
             if nb_threads < 0:
                 usage()
         elif nb_threads == 0:
             print ("fatal: unable to find the number of CPU, "
                    "use the -w option")
             usage()
-        post_proc_param = first_index_lst(["-p","--post"], args)
-        if post_proc_param != -1:
-            module = __import__(args[post_proc_param + 1])
+        if has_post_proc_fun:
+            module = __import__(post_proc_fun_param)
             post_proc_fun = module.post_proc
-        local_server_param = first_index_lst(["-s","--server"], args)
-        if local_server_param != -1:
-            # could be used later on to change Pyro NS port we start
-#             local_server_port = int(args[local_server_param + 1])
-            local_server_port = 0
         # check options coherency
         if read_from_file and connect_to_server:
             print "error: -c and -i are exclusive"
@@ -260,7 +229,7 @@ if __name__ == '__main__':
         master = Master(commands_queue, results_queue)
         nb_jobs        = 0
         locks          = []
-        if local_server_port != -1:
+        if is_server:
             starter = Pyro.naming.NameServerStarter()
             thread.start_new_thread(nameserver_wrapper, (starter, None))
             while not starter.waitUntilStarted():
@@ -315,7 +284,7 @@ if __name__ == '__main__':
                 cmd_and_output = results_queue.get()
                 jobs_done += 1
                 if output_to_file:
-                    if post_proc_fun == None:
+                    if not has_post_proc_fun:
                         output_file.write(parsable_echo(cmd_and_output) + '\n')
                     else:
                         output_file.write(post_proc_fun(cmd_and_output) + '\n')
@@ -323,7 +292,7 @@ if __name__ == '__main__':
                     progress_bar.updateAmount(jobs_done)
                     progress_bar.draw()
                 elif not output_to_file:
-                    if post_proc_fun == None:
+                    if not has_post_proc_fun:
                         print parsable_echo(cmd_and_output)
                     else:
                         print post_proc_fun(cmd_and_output)
