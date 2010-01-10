@@ -114,10 +114,10 @@ def parse_cmd_echo(cmd_and_output):
     return (cmd, cmd_out)
 
 def get_nb_procs():
-    cpuinfo = "/proc/cpuinfo" # some OS don't have this file
     res = None
     try:
-        res = int(commands.getoutput("egrep -c '^processor' " + cpuinfo))
+        # Non Linux OS don't have this file
+        res = int(commands.getoutput("egrep -c '^processor' /proc/cpuinfo"))
     except:
         res = 0
     return res
