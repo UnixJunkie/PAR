@@ -206,8 +206,8 @@ if __name__ == '__main__':
         (options, optargs) = parser.parse_args()
         show_progress      = options.is_verbose
         commands_file      = options.commands_file
-        output_file        = options.output_file
-        output_to_file     = output_file != None
+        output_file_param  = options.output_file
+        output_to_file     = output_file_param != None
         post_proc_fun      = options.post_proc
         daemon             = None
         args               = sys.argv
@@ -215,10 +215,8 @@ if __name__ == '__main__':
         remote_server_name = ""
         nb_threads         = get_nb_procs()
         output_param = first_index_lst(["-o","--output"], args)
-        if output_param != -1:
-            output_to_file = True
-            output_file_param = args[output_param + 1]
-            output_file       = open(output_file_param, 'a')
+        if output_to_file:
+            output_file = open(output_file_param, 'a')
         input_param = first_index_lst(["-i","--input"], args)
         remote_server_param = first_index_lst(["-c","--client"], args)
         if input_param != -1:  # mandatory option
