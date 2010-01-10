@@ -32,6 +32,8 @@ warning: keep this script compatible with python 2.4 so that we can run it
 import commands, os, socket, string, sys, time, thread
 import Pyro.core, Pyro.naming
 
+from optparse import OptionParser
+
 from Queue import Queue, Empty
 from ProgressBar import ProgressBar
 from Pyro.errors import PyroError, NamingError, ConnectionClosedError
@@ -56,25 +58,39 @@ class Master(Pyro.core.ObjBase):
     def add_job(self, cmd):
         self.jobs_queue.put(cmd)
 
-def usage():
-    print ("Usage: parallel.py [options] -i | -c ...")
-    print ("Execute commands in parallel.")
-    print ("")
-    print ("  [-h | --help]               you are currently reading it")
-    print ("  -c  | --client servername   read commands from a server")
-    print ("                              instead of a file")
-    print ("                              use -c or -i, not both")
-    print ("  -i  | --input commands_file /dev/stdin for example")
-    print ("  [-o | --output output_file] log to a file instead of stdout")
-    print ("  [-p | --post python_module] specify a post processing module")
-    print ("                              (omit the '.py' extension)")
-    print ("  [-s | --server]             accept remote workers")
-    print ("  [-v | --verbose]            enables progress bar")
-    print ("  [-w | --workers n]          number of local worker threads")
-    print ("                              must have n >= 0")
-    print ("                              n == 0 can be useful to only run")
-    print ("                                     the server")
-    sys.exit(0)
+optparse_usage = """Usage: %prog [options] {-i | -c} ...
+Execute commands in a parallel and/or distributed way."""
+
+parser = OptionParser(usage = optparse_usage)
+parser.add_option("-c", "--client",
+                  dest = "server_name", default = None,
+                  help = ("read commands from a server instead of a file "
+                          "(incompatible with -i)"))
+parser.add_option("-i", "--input",
+                  dest = "commands_file", default = None,
+                  help = ("/dev/stdin for example "
+                          "(incompatible with -c)"))
+parser.add_option("-o", "--output",
+                  dest = "output_file", default = None,
+                  help = "log to a file instead of stdout")
+parser.add_option("-p", "--post",
+                  dest = "post_proc", default = None,
+                  help = ("specify a Python post processing module "
+                          "(omit the '.py' extension)"))
+parser.add_option("-s", "--server",
+                  action="store_true",
+                  dest = "is_server", default = False,
+                  help = "accept remote workers")
+parser.add_option("-v", "--verbose",
+                  action="store_true",
+                  dest = "is_verbose", default = False,
+                  help = "enables progress bar")
+parser.add_option("-w", "--workers",
+                  dest = "nb_local_workers", default = None,
+                  help = ("number of local worker threads, "
+                          "must be >= 0, "
+                          "default is number of detected cores, very probably "
+                          "0 if your OS is not Linux"))
 
 cmd_start_tag = "cmd("
 res_start_tag = "):res("
@@ -187,11 +203,12 @@ default_pyro_ns_port = 9090
 
 if __name__ == '__main__':
     try:
-        show_progress      = False
-        output_to_file     = False
-        commands_file      = None
-        output_file        = None
-        post_proc_fun      = None
+        (options, optargs) = parser.parse_args()
+        show_progress      = options.is_verbose
+        output_to_file     = options.output_file != None
+        commands_file      = options.commands_file
+        output_file        = options.output_file
+        post_proc_fun      = options.post_proc
         daemon             = None
         args               = sys.argv
         local_server_port  = -1
@@ -209,18 +226,18 @@ if __name__ == '__main__':
             commands_file  = open(commands_file_param, 'r')
         elif remote_server_param == -1:
             print "-i or -c is mandatory"
-            usage() # -h | --help falls here also
+            parser.print_help() # -h | --help falls here also
         if first_index_lst(["-v","--verbose"], args) != -1:
             show_progress = True
         nb_workers_param = first_index_lst(["-w","--workers"], args)
         if nb_workers_param != -1:
             nb_threads = int(args[nb_workers_param + 1])
             if nb_threads < 0:
-                usage()
+                parser.print_help()
         elif nb_threads == 0:
             print ("fatal: unable to find the number of CPU, "
                    "use the -w option")
-            usage()
+            parser.print_help()
         post_proc_param = first_index_lst(["-p","--post"], args)
         if post_proc_param != -1:
             module = __import__(args[post_proc_param + 1])
@@ -235,7 +252,7 @@ if __name__ == '__main__':
         # check options coherency
         if input_param != -1 and remote_server_param != -1:
             print "error: -c and -i are exclusive"
-            usage()
+            parser.print_help()
         commands_queue = Queue()
         results_queue  = Queue()
         master = Master(commands_queue, results_queue)
