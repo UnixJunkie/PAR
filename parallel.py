@@ -214,7 +214,6 @@ if __name__ == '__main__':
         local_server_port  = -1
         remote_server_name = ""
         nb_threads         = get_nb_procs()
-        output_param = first_index_lst(["-o","--output"], args)
         if output_to_file:
             output_file = open(output_file_param, 'a')
         input_param = first_index_lst(["-i","--input"], args)
