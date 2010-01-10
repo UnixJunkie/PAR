@@ -33,6 +33,7 @@ NICE TO HAVE
 * profile with the python profiler
 * add a code coverage test, python is not compiled and pychecker is too
   light at checking things
+* generate tests to verify each option have an effect when used on the CLI
 
 JUST DREAMING
 -------------
@@ -41,4 +42,3 @@ JUST DREAMING
   server managing too many clients (Russian doll/fractal architecture).
   This would be only useful in a multi-cluster environment, and such bridge
   between cluster servers would be easily a bottleneck for data transfer.
-* generate tests to verify each option have an effect when used on the CLI
