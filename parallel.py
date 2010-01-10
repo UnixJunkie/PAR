@@ -209,11 +209,12 @@ if __name__ == '__main__':
         read_from_file      = commands_file_param != None
         output_file_param   = options.output_file
         output_to_file      = output_file_param != None
+        remote_server_name  = options.server_name
+        connect_to_server   = remote_server_name != None
         post_proc_fun       = options.post_proc
         daemon              = None
         args                = sys.argv
         local_server_port   = -1
-        remote_server_name  = ""
         nb_threads          = get_nb_procs()
         # FBR: verify mandatory options are present
         #      verify options coherency
@@ -245,8 +246,6 @@ if __name__ == '__main__':
             # could be used later on to change Pyro NS port we start
 #             local_server_port = int(args[local_server_param + 1])
             local_server_port = 0
-        if remote_server_param != -1:
-            remote_server_name = args[remote_server_param + 1]
         # check options coherency
         if read_from_file and remote_server_param != -1:
             print "error: -c and -i are exclusive"
@@ -282,7 +281,7 @@ if __name__ == '__main__':
             for cmd in commands_file:
                 master.add_job(string.strip(cmd))
                 nb_jobs += 1
-        if remote_server_name != "":
+        if connect_to_server:
             print 'Locating Name Server...'
             locator = Pyro.naming.NameServerLocator()
             ns = locator.getNS(host = remote_server_name,
