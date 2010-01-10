@@ -220,7 +220,6 @@ if __name__ == '__main__':
         #      verify options coherency
         if output_to_file:
             output_file = open(output_file_param, 'a')
-        input_param = first_index_lst(["-i","--input"], args)
         remote_server_param = first_index_lst(["-c","--client"], args)
         if read_from_file:  # mandatory option
             commands_file  = open(commands_file_param, 'r')
