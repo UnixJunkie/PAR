@@ -58,6 +58,7 @@ class Master(Pyro.core.ObjBase):
     def add_job(self, cmd):
         self.jobs_queue.put(cmd)
 
+# FBR: move these just before the main
 optparse_usage = """Usage: %prog [options] {-i | -c} ...
 Execute commands in a parallel and/or distributed way."""
 
@@ -203,23 +204,25 @@ default_pyro_ns_port = 9090
 
 if __name__ == '__main__':
     try:
-        (options, optargs) = parser.parse_args()
-        show_progress      = options.is_verbose
-        commands_file      = options.commands_file
-        output_file_param  = options.output_file
-        output_to_file     = output_file_param != None
-        post_proc_fun      = options.post_proc
-        daemon             = None
-        args               = sys.argv
-        local_server_port  = -1
-        remote_server_name = ""
-        nb_threads         = get_nb_procs()
+        (options, optargs)  = parser.parse_args()
+        show_progress       = options.is_verbose
+        commands_file_param = options.commands_file
+        read_from_file      = commands_file_param != None
+        output_file_param   = options.output_file
+        output_to_file      = output_file_param != None
+        post_proc_fun       = options.post_proc
+        daemon              = None
+        args                = sys.argv
+        local_server_port   = -1
+        remote_server_name  = ""
+        nb_threads          = get_nb_procs()
+        # FBR: verify mandatory options are present
+        #      verify options coherency
         if output_to_file:
             output_file = open(output_file_param, 'a')
         input_param = first_index_lst(["-i","--input"], args)
         remote_server_param = first_index_lst(["-c","--client"], args)
-        if input_param != -1:  # mandatory option
-            commands_file_param = args[input_param + 1]
+        if read_from_file:  # mandatory option
             commands_file  = open(commands_file_param, 'r')
         elif remote_server_param == -1:
             print "-i or -c is mandatory"
@@ -247,7 +250,7 @@ if __name__ == '__main__':
         if remote_server_param != -1:
             remote_server_name = args[remote_server_param + 1]
         # check options coherency
-        if input_param != -1 and remote_server_param != -1:
+        if read_from_file and remote_server_param != -1:
             print "error: -c and -i are exclusive"
             parser.print_help()
         commands_queue = Queue()
@@ -276,7 +279,7 @@ if __name__ == '__main__':
             # publish master object
             daemon.connect(master,'master')
             thread.start_new_thread(master_wrapper, (daemon, None))
-        if input_param != -1:
+        if read_from_file:
             # read jobs from local file
             for cmd in commands_file:
                 master.add_job(string.strip(cmd))
@@ -300,7 +303,7 @@ if __name__ == '__main__':
             l.acquire()
             locks.append(l)
             thread.start_new_thread(worker_wrapper, (master, l))
-        if input_param != -1:
+        if read_from_file:
             progress_bar = ProgressBar(0, nb_jobs, 60)
             # output everything
             jobs_done = 0
