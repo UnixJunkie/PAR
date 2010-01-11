@@ -1,7 +1,5 @@
 MUST DO
 -------
-* make the NS thread a daemon one, this looks like the standard way
-  to go in Python
 * for -p|--post: return both (stdin, stdout and stderr to the user), not just
   (stdin, stdout) like actually, so that he can troubleshoot if some of his
   commands fail in error by reading their stderr.
