@@ -23,6 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 # What is a file?
+#################
 # metadata:
 # =========
 # - a name
@@ -35,8 +36,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # data:
 # =====
 # - a list of chunks
+#   there should exist a mapping between an ordered list of chunks and a file
+#   on the host that published its metadata
 
 # What is a chunk?
+##################
 # - some data
 # - the list of nodes where this data is stored, on each node there is
 #   a path corresponding to where we can read the data on the filesystem
@@ -46,3 +50,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #         bottleneck also (several write at the same time on the same node
 #         but from different threads).
 
+# What are the external commands users will call on the MetaDataManager?
+##################
+# The API must closely reflect these commands
+# list        : list files
+# put filename: publish it
+# get filename: retrieve a file
