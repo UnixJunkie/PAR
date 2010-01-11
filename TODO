@@ -9,6 +9,8 @@ MUST DO
   can read it on one screen
 * find a cool logger for Python, I begin to feel the need
 * add data management: single write and multiple read style virtual filesystem
+* get rid of the ProgressBar, I can write something simpler in just a few lines
+  and then we can throw the Python license and have only GPL v3 code
 
 NICE TO HAVE
 ------------
