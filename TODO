@@ -37,7 +37,6 @@ NICE TO HAVE
        ignored.
     3) Workers can encrypt theur results like the server does for commands:
        (compress | encrypt | sign).
-
 * profile with the python profiler
 * add a code coverage test, python is not compiled and pychecker is too
   light at checking things
