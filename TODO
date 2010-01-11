@@ -26,6 +26,18 @@ NICE TO HAVE
     to deplete the commands list (at least, we should detect they were not
     performed and reschedule them later on. At most, we should not send him
     commands too fast)
+  Here is an idea for a safe communication protocol using assymetric
+  encryption:
+    1) The server compress | encrypt | sign commands prior to sending them
+       to workers.
+       Compression could be a real time one like LZOP. This would decrease
+       commands size and increase encryption quality.
+    2) The workers verify signature | decrypt | decompress commands.
+       If any of the above fails, it is logged and corresponding command is
+       ignored.
+    3) Workers can encrypt theur results like the server does for commands:
+       (compress | encrypt | sign).
+
 * profile with the python profiler
 * add a code coverage test, python is not compiled and pychecker is too
   light at checking things
