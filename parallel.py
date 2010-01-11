@@ -58,26 +58,12 @@ class Master(Pyro.core.ObjBase):
     def add_job(self, cmd):
         self.jobs_queue.put(cmd)
 
-cmd_start_tag = "cmd("
-res_start_tag = "):res("
-
 # return cmd and its output as a parsable string like:
 # cmd("cat myfile"):res("myfile_content")
 def parsable_echo((cmd, cmd_out)):
+    cmd_start_tag = "cmd("
+    res_start_tag = "):res("
     return cmd_start_tag + cmd + res_start_tag + cmd_out + ")"
-
-# this is a stupid parser, not taking into account parenthesis nesting
-def parse_cmd_echo(cmd_and_output):
-    cmd = ""
-    cmd_out = ""
-    if cmd_and_output.find(cmd_start_tag) == 0:
-        res_tag_index = cmd_and_output.find(res_start_tag)
-        cmd = cmd_and_output[len(cmd_start_tag):res_tag_index]
-        cmd_out = cmd_and_output[res_tag_index + len(res_start_tag):
-                                 len(cmd_and_output) - 1]
-    else:
-        cmd_out = cmd_and_output
-    return (cmd, cmd_out)
 
 def get_nb_procs():
     res = None
