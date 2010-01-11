@@ -9,6 +9,7 @@ MUST DO
   all the information needed by downstream workers.
 * main became a pretty big function, cut it into sub-functions so we
   can read it on one screen
+* find a cool logger for Python, I begin to feel the need
 
 NICE TO HAVE
 ------------
