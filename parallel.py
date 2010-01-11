@@ -32,9 +32,10 @@ warning: keep this script compatible with python 2.4 so that we can run it
 import commands, os, socket, string, sys, time, thread
 import Pyro.core, Pyro.naming
 
-from optparse import OptionParser
+from optparse    import OptionParser
+from threading   import Thread
 
-from Queue import Queue, Empty
+from Queue       import Queue, Empty
 from ProgressBar import ProgressBar
 from Pyro.errors import PyroError, NamingError, ConnectionClosedError
 
@@ -86,40 +87,47 @@ def worker_wrapper(master, lock):
     print "no more jobs for me, leaving"
     lock.release()
 
-# Pyro nameserver thread setup and start
-# a pair parameter is required by start_new_thread,
-# hence the unused '_' parameter
-def nameserver_wrapper(starter, _):
-    # Options and behavior we want:
-    # -x: no broadcast listener
-    # -m: several nameservers on same network OK
-    # -r: don't try to find any other nameserver
-    # cf. Pyro-3.10/Pyro/naming.py if you need to change/understand code below
-    host = None
-    port = None
-    if port:
-        port = int(port)
-    bcport = 0
-    bcaddr = None
-    nobroadcast = True
-    role = Pyro.constants.NSROLE_SINGLE
-    roleArgs = None
-    verbose = False
-    keep = False
-    allowmultiple = True
-    dontlookupother = True
-    persistent = 0
-    dbdir = None
-    Guards = (None,None)
-    print '*** Starting Pyro Name Server ***'
-    try:
-        starter.start(host, port, bcport, keep, persistent, dbdir, Guards,
-                      allowmultiple, dontlookupother, verbose,
-                      role = (role, roleArgs), bcaddr = bcaddr,
-                      nobroadcast = nobroadcast)
-    except (Pyro.errors.NamingError, Pyro.errors.DaemonError),x:
-        print "error while starting Pyro nameserver:" + x
-        pass
+class NameServerThread(Thread):
+
+   def __init__ (self, starter):
+      Thread.__init__(self, name = "NameServerThread")
+      self.starter = starter
+      self.setDaemon(True) # Python will exit and clean correctly once
+                           # only daemon threads are still running
+
+   # Pyro nameserver thread setup and start
+   def run(self):
+       # Options and behavior we want:
+       # -x: no broadcast listener
+       # -m: several nameservers on same network OK
+       # -r: don't try to find any other nameserver
+       # cf. Pyro-3.10/Pyro/naming.py if you need to change/understand
+       # code below
+       host = None
+       port = None
+       if port:
+           port = int(port)
+       bcport = 0
+       bcaddr = None
+       nobroadcast = True
+       role = Pyro.constants.NSROLE_SINGLE
+       roleArgs = None
+       verbose = False
+       keep = False
+       allowmultiple = True
+       dontlookupother = True
+       persistent = 0
+       dbdir = None
+       Guards = (None,None)
+       print '*** Starting Pyro Name Server ***'
+       try:
+           self.starter.start(host, port, bcport, keep, persistent,
+                              dbdir, Guards, allowmultiple, dontlookupother,
+                              verbose, role = (role, roleArgs),
+                              bcaddr = bcaddr, nobroadcast = nobroadcast)
+       except (Pyro.errors.NamingError, Pyro.errors.DaemonError),x:
+           print "error while starting Pyro nameserver:" + x
+           sys.exit(1)
 
 pyro_daemon_loop_cond = True
 
@@ -216,8 +224,9 @@ if __name__ == '__main__':
         nb_jobs        = 0
         locks          = []
         if is_server:
-            starter = Pyro.naming.NameServerStarter()
-            thread.start_new_thread(nameserver_wrapper, (starter, None))
+            starter    = Pyro.naming.NameServerStarter()
+            ns_wrapper = NameServerThread(starter)
+            ns_wrapper.start()
             while not starter.waitUntilStarted():
                 time.sleep(0.1)
             Pyro.core.initServer()
