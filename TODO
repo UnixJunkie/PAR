@@ -2,13 +2,13 @@ MUST DO
 -------
 * make the NS thread a daemon one, this looks like the standard way
   to go in Python
-* main became a pretty big function, cut it into sub-functions so we
-  can read it on one screen
 * for -p|--post: return both (stdin, stdout and stderr to the user), not just
   (stdin, stdout) like actually, so that he can troubleshoot if some of his
   commands fail in error by reading their stderr.
-  Also, this could be quite useful in order to propagate in a parallel pipe
+  Also, this could be quite useful in order to propagate in a multiplexed pipe
   all the information needed by downstream workers.
+* main became a pretty big function, cut it into sub-functions so we
+  can read it on one screen
 
 NICE TO HAVE
 ------------
