@@ -84,7 +84,7 @@ def worker_wrapper(master, lock):
             work = master.get_work()
     except ConnectionClosedError: # server closed because no more jobs to send
         pass
-    print "no more jobs for me, leaving"
+    #print "no more jobs for me, leaving"
     lock.release()
 
 class NameServerThread(Thread):
