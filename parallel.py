@@ -69,10 +69,14 @@ def parsable_echo((cmd, cmd_out)):
 def get_nb_procs():
     res = None
     try:
-        # Non Linux OS don't have this file
+        # Linux
         res = int(commands.getoutput("egrep -c '^processor' /proc/cpuinfo"))
     except:
-        res = 0
+        try:
+            # {Free|Net|Open}BSD and MacOS X
+            res = int(commands.getoutput("sysctl -n hw.ncpu"))
+        except:
+            res = 0
     return res
 
 def worker_wrapper(master, lock):
@@ -189,13 +193,13 @@ if __name__ == '__main__':
         remote_server_name    = options.server_name
         connect_to_server     = remote_server_name != None
         nb_workers            = options.nb_local_workers
+        nb_threads            = get_nb_procs() # automatic detection
         has_nb_workers_option = nb_workers != None
         post_proc_option      = options.post_proc
         post_proc_fun         = None
         has_post_proc_option  = post_proc_option != None
         is_server             = options.is_server
         daemon                = None
-        nb_threads            = get_nb_procs() # default automatic detection
         if output_to_file:
             output_file = open(output_file_option, 'a')
         if read_from_file:  # mandatory option
@@ -207,7 +211,7 @@ if __name__ == '__main__':
             nb_threads = int(nb_workers)
             if nb_threads < 0:
                 usage()
-        elif nb_threads == 0:
+        elif nb_threads <= 0:
             print ("fatal: unable to find the number of CPU, "
                    "use the -w option")
             usage()
