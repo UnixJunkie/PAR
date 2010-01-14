@@ -9,7 +9,7 @@ MUST DO
   can read it on one screen
 * find a cool logger for Python, I begin to feel the need
   logging and logging.Logger seems the way to go
-* add data management: single write and multiple read style virtual filesystem
+* add data management: single write and multiple read style virtual file-system
 * get rid of the ProgressBar, I can write something simpler in just a few lines
   and then we can throw the Python license and have only GPL v3 code
 
@@ -29,7 +29,7 @@ NICE TO HAVE
     to deplete the commands list (at least, we should detect they were not
     performed and reschedule them later on. At most, we should not send him
     commands too fast)
-  Here is an idea for a safe communication protocol using assymetric
+  Here is an idea for a safe communication protocol using asymmetric
   encryption:
     1) The server compress | encrypt | sign commands prior to sending them
        to workers.
@@ -38,12 +38,15 @@ NICE TO HAVE
     2) The workers verify signature | decrypt | decompress commands.
        If any of the above fails, it is logged and corresponding command is
        ignored.
-    3) Workers can encrypt theur results like the server does for commands:
+    3) Workers can encrypt their results like the server does for commands:
        (compress | encrypt | sign).
 * profile with the python profiler
 * add a code coverage test, python is not compiled and pychecker is too
   light at checking things
 * generate tests to verify each option have an effect when used on the CLI
+* If we have many workers and only one server, if workers crush jobs very
+  fast, they should request several jobs at a time and send several results at
+  a time (because latency is not 0 for distributed objects...)
 
 JUST DREAMING
 -------------
@@ -52,3 +55,6 @@ JUST DREAMING
   server managing too many clients (Russian doll/fractal architecture).
   This would be only useful in a multi-cluster environment, and such bridge
   between cluster servers would be easily a bottleneck for data transfer.
+  This kind of "special client" should request several jobs at a time, and
+  send several results at a time (because he is the proxy for maybe an entire
+  cluster, not just a "standard client").
