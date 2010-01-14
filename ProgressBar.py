@@ -1,51 +1,50 @@
-# obtained from http://code.activestate.com/recipes/168639/
-# Copyright 2002, Randy Pargman
-# Python license version 2.6.2
-# You should have received a copy of the Python license along with this
-# program.  If not, see:
-# http://www.python.org/download/releases/2.6.2/license
+"""
+Copyright (C) 2009, Zhang Initiative Research Unit,
+Advance Science Institute, Riken
+2-1 Hirosawa, Wako, Saitama 351-0198, Japan
+If you use and like our software, please send us a postcard! ^^
+---
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
 
 import sys
 
 class ProgressBar:
-    def __init__(self, minValue = 0, maxValue = 10, totalWidth=12):
-        self.progBar = "[]"   # This holds the progress bar string
-        self.oldProgBar = self.progBar
-        self.min = minValue
-        self.max = maxValue
-        self.span = maxValue - minValue
-        self.width = totalWidth
-        self.amount = 0       # When amount == max, we are 100% done
-        self.updateAmount(0)  # Build progress bar string
+    
+  def __init__(self, min_val, max_val):
+    self.min      = float(min_val)
+    self.max      = float(max_val)
+    self.width    = self.max - self.min
+    self.done     = 0
+    self.current  = "done: %3d " % self.done + "%"
+    self.previous = None
+    self.update(0)
 
-    def updateAmount(self, newAmount = 0):
-        if self.span > 0:
-            if newAmount < self.min: newAmount = self.min
-            if newAmount > self.max: newAmount = self.max
-            self.amount = newAmount
-            # Figure out the new percent done, round to an integer
-            diffFromMin = float(self.amount - self.min)
-            percentDone = (diffFromMin / float(self.span)) * 100.0
-            percentDone = round(percentDone)
-            percentDone = int(percentDone)
-            # Figure out how many hash bars the percentage should be
-            allFull = self.width - 2
-            numHashes = (percentDone / 100.0) * allFull
-            numHashes = int(round(numHashes))
-            # build a progress bar with hashes and spaces
-            self.progBar = "[" + '#'*numHashes + ' '*(allFull-numHashes) + "]"
-            # figure out where to put the percentage, roughly centered
-            percentPlace = (len(self.progBar) / 2) - len(str(percentDone))
-            percentString = str(percentDone) + "%"
-            # slice the percentage into the bar
-            self.progBar = (self.progBar[0:percentPlace] + percentString +
-                            self.progBar[percentPlace+len(percentString):])
+  def update(self, new_amount):
+    if self.width > 0.0:
+      new_amount   = float(new_amount)
+      new_amount   = max(new_amount, self.min)
+      new_amount   = min(new_amount, self.max)      
+      self.done    = new_amount
+      delta        = self.done - self.min
+      percent      = int(round((delta / self.width) * 100.0))
+      self.current = "done: %3d " % percent + "%"
 
-    # draw progress bar only if it has changed
-    def draw(self):
-        if self.progBar != self.oldProgBar:
-            self.oldProgBar = self.progBar
-            sys.stdout.write(self.progBar + '\r')
-            if self.amount == self.max:
-                sys.stdout.write('\n')
-            sys.stdout.flush()
+  def draw(self):
+    if self.current != self.previous:
+      self.previous = self.current
+      sys.stdout.write(self.current + '\r')
+      if self.done == self.max:
+        sys.stdout.write('\n') # prevent overwriting
+      sys.stdout.flush()

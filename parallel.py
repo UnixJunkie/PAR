@@ -274,7 +274,7 @@ if __name__ == '__main__':
             locks.append(l)
             thread.start_new_thread(worker_wrapper, (master, l))
         if read_from_file:
-            progress_bar = ProgressBar(0, nb_jobs, 60)
+            progress_bar = ProgressBar(0, nb_jobs)
             # output everything
             jobs_done = 0
             if show_progress:
@@ -288,7 +288,7 @@ if __name__ == '__main__':
                     else:
                         output_file.write(parsable_echo(cmd_and_output) + '\n')
                 if show_progress:
-                    progress_bar.updateAmount(jobs_done)
+                    progress_bar.update(jobs_done)
                     progress_bar.draw()
                 elif not output_to_file:
                     if has_post_proc_option:
