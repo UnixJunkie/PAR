@@ -145,46 +145,46 @@ def master_wrapper(daemon, _):
 optparse_usage = """Usage: %prog [options] {-i | -c} ...
 Execute commands in a parallel and/or distributed way."""
 
-parser = OptionParser(usage = optparse_usage)
-parser.add_option("-c", "--client",
-                  dest = "server_name", default = None,
-                  help = ("read commands from a server instead of a file "
-                          "(incompatible with -i)"))
-parser.add_option("-i", "--input",
-                  dest = "commands_file", default = None,
-                  help = ("/dev/stdin for example "
-                          "(incompatible with -c)"))
-parser.add_option("-o", "--output",
-                  dest = "output_file", default = None,
-                  help = "log to a file instead of stdout")
-parser.add_option("-p", "--post",
-                  dest = "post_proc", default = None,
-                  help = ("specify a Python post processing module "
-                          "(omit the '.py' extension)"))
-parser.add_option("-s", "--server",
-                  action="store_true",
-                  dest = "is_server", default = False,
-                  help = "accept remote workers")
-parser.add_option("-v", "--verbose",
-                  action="store_true",
-                  dest = "is_verbose", default = False,
-                  help = "enables progress bar")
-parser.add_option("-w", "--workers",
-                  dest = "nb_local_workers", default = None,
-                  help = ("number of local worker threads, "
-                          "must be >= 0, "
-                          "default is number of detected cores, very probably "
-                          "0 if your OS is not Linux"))
+my_parser = OptionParser(usage = optparse_usage)
+my_parser.add_option("-c", "--client",
+                     dest = "server_name", default = None,
+                     help = ("read commands from a server instead of a file "
+                             "(incompatible with -i)"))
+my_parser.add_option("-i", "--input",
+                     dest = "commands_file", default = None,
+                     help = ("/dev/stdin for example "
+                             "(incompatible with -c)"))
+my_parser.add_option("-o", "--output",
+                     dest = "output_file", default = None,
+                     help = "log to a file instead of stdout")
+my_parser.add_option("-p", "--post",
+                     dest = "post_proc", default = None,
+                     help = ("specify a Python post processing module "
+                             "(omit the '.py' extension)"))
+my_parser.add_option("-s", "--server",
+                     action="store_true",
+                     dest = "is_server", default = False,
+                     help = "accept remote workers")
+my_parser.add_option("-v", "--verbose",
+                     action="store_true",
+                     dest = "is_verbose", default = False,
+                     help = "enables progress bar")
+my_parser.add_option("-w", "--workers",
+                     dest = "nb_local_workers", default = None,
+                     help = ("number of local worker threads, "
+                             "must be >= 0, "
+                             "default is number of detected cores, very "
+                             "probably 0 if your OS is not Linux"))
 
 def usage():
-    parser.print_help()
+    my_parser.print_help()
     sys.exit(0)
 
 default_pyro_ns_port = 9090
 
 if __name__ == '__main__':
     try:
-        (options, optargs)    = parser.parse_args()
+        (options, optargs)    = my_parser.parse_args()
         show_progress         = options.is_verbose
         commands_file_option  = options.commands_file
         read_from_file        = commands_file_option != None
