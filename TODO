@@ -39,6 +39,15 @@ NICE TO HAVE
        ignored.
     3) Workers can encrypt their results like the server does for commands:
        (compress | encrypt | sign).
+  Here is another encryption idea for paranoid users ("one time pad" style):
+    1) The server has a different random data source for each client
+       (a cryptographic random number generator initialized differently for
+        each client should be enough for non paranoid users)
+    2) Each client also has the same random data source than the one the
+       server is using to communicate with it
+    3) Encryption: compress | one time pad [| sign ?]
+    4) Decryption: [ verif sign? |] unpad | decompress
+    5) random data must never be used twice (forward only in the random pool)
 * profile with the python profiler
 * add a code coverage test, python is not compiled and pychecker is too
   light at checking things
