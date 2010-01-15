@@ -10,6 +10,7 @@ MUST DO
 * find a cool logger for Python, I begin to feel the need
   logging and logging.Logger seems the way to go
 * add data management: single write and multiple read style virtual file-system
+  cf Python modules tarfile and gzip
 
 NICE TO HAVE
 ------------
