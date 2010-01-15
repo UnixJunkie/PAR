@@ -24,35 +24,49 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 # What is a file?
 #################
-# metadata:
+# metadata: <-- managed by MetaDataManager (only one per parallel.py server)
 # =========
 # - a name
-# - a size
+# - a size (of the uncompressed file)
 # - a creation time and date
 #   [optionaly]
 #   - a user
 #   - a group
-#   - permissions for UGO <-- NOTE: can't we use ACL grain permissions?
-# data:
+#   - permissions for UGO <-- NOTE: ACLs are fare better than UGO
+# data: <-- managed by DataManager (one per parallel.py client,
+#                                   ??? plus one for the server ???)
+#                                   the server could be run on a cluster
+#                                   frontend, some clusters don't like
+#                                   that nodes use the frontend's
+#                                   disk/network/CPU too heavily
+# maybe we should have DataManagers only inside the cluster, and maybe
+# we need a special mode (--mirror), which means this special DataManager
+# must have all data listed by the MetaDataManager
 # =====
 # - a list of chunks
-#   there should exist a mapping between an ordered list of chunks and a file
-#   on the host that published its metadata
 
 # What is a chunk?
 ##################
-# - some data
-# - the list of nodes where this data is stored, on each node there is
-#   a path corresponding to where we can read the data on the filesystem
-#   NOTE: maybe having each chunk in a distinct file is not a good idea,
-#         maybe a tar holding all the chunks of the machine, or a Berkeley DB,
-#         or a flat file we only append to is better. But beware of a possible
-#         bottleneck also (several write at the same time on the same node
-#         but from different threads).
+# - chunks must be sortable (in order to retrieve how to recreate the file
+#                            they belong to)
+# - some data (compressed, we should be able to not use compression via
+#              some option)
+# - uncompressed data size
+# - compressed data size
+# - the list of nodes where this data is stored
+#   on each node there is a path corresponding to the storage file
+#   the storage backend is a GNU tar file containing only compressed (gzip -1)
+#   files.
+#   We'll think again later if we observe a bottleneck when writing massively
+#   to it. Maybe then we will decide we need one backend per CPU to
+#   parallelize writes on the same host (I/O load balancing).
 
-# What are the external commands users will call on the MetaDataManager?
+# What are the external commands users will call on a DataManager?
 ##################
-# The API must closely reflect these commands
-# list        : list files
-# put filename: publish it
-# get filename: retrieve a file
+# * the API must closely reflect these commands to facilitate
+#   implementation
+# * the DataManager will contact the MetadataManager to get info it
+#   does not know
+# - list                      : list all files
+# - put filename [dfs_path]   : publish it [under the identifier dfs_path]
+# - get dfs_path [local_path] : retrieve a file and write it [to local_path]
