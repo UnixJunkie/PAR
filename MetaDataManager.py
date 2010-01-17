@@ -71,7 +71,16 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # - put filename [dfs_path]   : publish it [under the identifier dfs_path]
 # - get dfs_path [local_path] : retrieve a file and write it [to local_path]
 
-import os, time
+import logging, os, time
+
+logger = logging.getLogger()
+# log levels:
+#  debug
+#  info
+#  warning
+#  error
+#  critical
+#  exception
 
 # criteria to cut a file into chunks
 CHUNK_SIZE = 1024*1024
@@ -91,6 +100,6 @@ class Metadata:
             try:
                 self.size = os.path.getsize(self.name)
             except os.error:
-                print "ERROR: can't get size of " + self.name
+                logger.exception ("can't get size of " + self.name)
         else:
-            print "ERROR: no file " + self.name
+            logger.error ("no file " + self.name)
