@@ -70,3 +70,27 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # - list                      : list all files
 # - put filename [dfs_path]   : publish it [under the identifier dfs_path]
 # - get dfs_path [local_path] : retrieve a file and write it [to local_path]
+
+import os, time
+
+# criteria to cut a file into chunks
+CHUNK_SIZE = 1024*1024
+
+class Metadata:
+
+    def __init__(self, filename, dfs_path = None):
+        self.was_created = False
+        self.size = 0
+        self.name = filename
+        self.dfs_path = self.name
+        self.creation_time = time.time()
+        self.chunks = []
+        if dfs_path != None:
+            self.dfs_path = dfs_path
+        if os.path.isfile (self.name):
+            try:
+                self.size = os.path.getsize(self.name)
+            except os.error:
+                print "ERROR: can't get size of " + self.name
+        else:
+            print "ERROR: no file " + self.name
