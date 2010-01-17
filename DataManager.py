@@ -22,7 +22,18 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ---
 """
 
-import sys
+import logging, sys
+
+logging.basicConfig(level=logging.DEBUG,
+                    format='%(asctime)s %(levelname)s %(message)s')
+
+# log levels:
+#  debug
+#  info
+#  warning
+#  error
+#  critical
+#  exception
 
 # What are the external commands users will call on a DataManager?
 ##################################################################
@@ -32,9 +43,8 @@ import sys
 #   does not know
 
 def usage():
-    #      0      1    1   2        3            1   2        3
-    print """
-    usage:
+    #0              1    1   2        3            1   2        3
+    print """usage:
     DataManager.py {ls | put filename [dfs_path] | get dfs_path [filename]}
     ---
     ls                      : list all files
@@ -50,4 +60,29 @@ if __name__ == '__main__':
     correct_argcs = [2,3,4]
     argc = len(sys.argv)
     if argc not in correct_argcs:
+        usage()
+    command = sys.argv[1]
+    param_1 = None
+    if argc == 3:
+        param_1 = sys.argv[2]
+    param_2 = None
+    if argc == 4:
+        param_2 = sys.argv[3]
+    if command == "ls":
+        if argc not in [2]:
+            print "ls takes no argument"
+            usage()
+        logging.debug("going to exec: " + command)
+    elif command == "put":
+        if argc not in [3,4]:
+            print "put takes one or two arguments"
+            usage()
+        logging.debug("going to exec: " + command)
+    elif command == "get":
+        if argc not in [3,4]:
+            print "get takes one or two arguments"
+            usage()
+        logging.debug("going to exec: " + command)
+    else:
+        print "unknown command: " + command
         usage()
