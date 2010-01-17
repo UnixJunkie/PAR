@@ -150,6 +150,11 @@ my_parser.add_option("-c", "--client",
                      dest = "server_name", default = None,
                      help = ("read commands from a server instead of a file "
                              "(incompatible with -i)"))
+my_parser.add_option("-d", "--dfs",
+                     action="store_true",
+                     dest = "data_server", default = False,
+                     help = ("EXPERIMENTAL: allow distributed "
+                             "filesystem capability"))
 my_parser.add_option("-i", "--input",
                      dest = "commands_file", default = None,
                      help = ("/dev/stdin for example "
