@@ -21,3 +21,14 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ---
 """
+
+# What are the external commands users will call on a DataManager?
+##################################################################
+# * the API must closely reflect these commands to facilitate
+#   implementation
+# * the DataManager will contact the MetadataManager to get info it
+#   does not know
+# - list                      : list all files
+# - put filename [dfs_path]   : publish it [under the identifier dfs_path]
+# - get dfs_path [local_path] : retrieve a file and write it [to local_path]
+
