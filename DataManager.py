@@ -26,7 +26,6 @@ import logging, sys
 
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s %(levelname)s %(message)s')
-
 # log levels:
 #  debug
 #  info
