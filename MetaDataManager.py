@@ -59,7 +59,6 @@ CHUNK_SIZE = 1024*1024
 # must have all data listed by the MetaDataManager
 # =====
 # - a dictionary of chunks
-
 class Metadata:
 
     def __init__(self, filename, dfs_path = None):
@@ -94,7 +93,6 @@ class Metadata:
 #   We'll think again later if we observe a bottleneck when writing massively
 #   to it. Maybe then we will decide we need one backend per CPU to
 #   parallelize writes on the same host (I/O load balancing).
-
 class Data:
 
     def __init__(self, identifier, size, index):
@@ -104,4 +102,10 @@ class Data:
         self.index = index
         self.nodes = []
 
-# FBR: add the MetaDataManager to parallel.py for tests
+class MetaDataManager:
+
+    def __init__(self):
+        self.files = {}
+
+    def ls(self):
+        return "\n".join([self.files[k] for k in self.files.keys()])
