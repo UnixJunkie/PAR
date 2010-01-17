@@ -40,22 +40,25 @@ logging.basicConfig(level=logging.DEBUG,
 #   implementation
 # * the DataManager will contact the MetadataManager to get info it
 #   does not know
-
 def usage():
     #0              1    1   2        3            1   2        3
     print """usage:
-    DataManager.py {ls | put filename [dfs_path] | get dfs_path [filename]}
+    DataManager.py command [parameters]
     ---
+    available commands:
     ls                      : list all files
     put filename [dfs_path] : publish a file [under the identifier dfs_path]
                               (default dfs_path is filename)
     get dfs_path [filename] : retrieve a file and write it [to filename]
                               (default filename is dfs_path)
+    {quit|q|exit}           : stop the program
     """
     sys.exit(0)
 
 if __name__ == '__main__':
-    commands      = ["ls","put","get"]
+    # FBR: - put this in an infinite loop
+    #      - fork the DataManager out of the CLI
+    commands      = ["ls", "put", "get", "quit", "q", "exit"]
     correct_argcs = [2,3,4]
     argc = len(sys.argv)
     if argc not in correct_argcs:
@@ -68,7 +71,7 @@ if __name__ == '__main__':
     if argc == 4:
         param_2 = sys.argv[3]
     if command == "ls":
-        if argc not in [2]:
+        if argc != 2:
             print "ls takes no argument"
             usage()
         logging.debug("going to exec: " + command)
@@ -82,6 +85,8 @@ if __name__ == '__main__':
             print "get takes one or two arguments"
             usage()
         logging.debug("going to exec: " + command)
+    elif command in ["quit", "q", "exit"]:
+        sys.exit(0)
     else:
         print "unknown command: " + command
         usage()
