@@ -31,6 +31,6 @@ fi
 
 cat test_parallel.input | ./parallel.py -i /dev/stdin $nb_procs \
 | cut -d':' -f2 | sed "s/^res(//g" | sed "s/)$//g" | \
-grep -v "no more jobs for me" | sort -n > test_parallel.output
+sort -n > test_parallel.output
 
 diff test_parallel.output test_parallel.output.reference
