@@ -24,7 +24,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import logging, os, time
 
-logger = logging.getLogger()
+logging.basicConfig(level=logging.DEBUG,
+                    format='%(asctime)s %(levelname)s %(message)s')
 # log levels:
 #  debug
 #  info
@@ -74,9 +75,9 @@ class Metadata:
             try:
                 self.size = os.path.getsize(self.name)
             except os.error:
-                logger.exception ("can't get size of " + self.name)
+                logging.exception ("can't get size of " + self.name)
         else:
-            logger.error ("no file " + self.name)
+            logging.error ("no file " + self.name)
 
 # What is a chunk of Data?
 ##########################
