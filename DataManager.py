@@ -22,13 +22,32 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ---
 """
 
+import sys
+
 # What are the external commands users will call on a DataManager?
 ##################################################################
 # * the API must closely reflect these commands to facilitate
 #   implementation
 # * the DataManager will contact the MetadataManager to get info it
 #   does not know
-# - list                      : list all files
-# - put filename [dfs_path]   : publish it [under the identifier dfs_path]
-# - get dfs_path [local_path] : retrieve a file and write it [to local_path]
 
+def usage():
+    #      0      1    1   2        3            1   2        3
+    print """
+    usage:
+    DataManager.py {ls | put filename [dfs_path] | get dfs_path [filename]}
+    ---
+    ls                      : list all files
+    put filename [dfs_path] : publish a file [under the identifier dfs_path]
+                              (default dfs_path is filename)
+    get dfs_path [filename] : retrieve a file and write it [to filename]
+                              (default filename is dfs_path)
+    """
+    sys.exit(0)
+
+if __name__ == '__main__':
+    commands      = ["ls","put","get"]
+    correct_argcs = [2,3,4]
+    argc = len(sys.argv)
+    if argc not in correct_argcs:
+        usage()
