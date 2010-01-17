@@ -22,8 +22,22 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ---
 """
 
-# What is a file?
-#################
+import logging, os, time
+
+logger = logging.getLogger()
+# log levels:
+#  debug
+#  info
+#  warning
+#  error
+#  critical
+#  exception
+
+# criteria to cut a file into chunks
+CHUNK_SIZE = 1024*1024
+
+# How is described a file?
+##########################
 # metadata: <-- managed by MetaDataManager (only one per parallel.py server)
 # =========
 # - a name
@@ -43,10 +57,29 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # we need a special mode (--mirror), which means this special DataManager
 # must have all data listed by the MetaDataManager
 # =====
-# - a list of chunks
+# - a dictionary of chunks
 
-# What is a chunk?
-##################
+class Metadata:
+
+    def __init__(self, filename, dfs_path = None):
+        self.was_created = False
+        self.size = 0
+        self.name = filename
+        self.dfs_path = self.name
+        self.creation_time = time.time()
+        self.chunks = {}
+        if dfs_path != None:
+            self.dfs_path = dfs_path
+        if os.path.isfile (self.name):
+            try:
+                self.size = os.path.getsize(self.name)
+            except os.error:
+                logger.exception ("can't get size of " + self.name)
+        else:
+            logger.error ("no file " + self.name)
+
+# What is a chunk of Data?
+##########################
 # - chunks must be sortable (in order to retrieve how to recreate the file
 #                            they belong to)
 # - some data (compressed, we should be able to not use compression via
@@ -61,45 +94,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #   to it. Maybe then we will decide we need one backend per CPU to
 #   parallelize writes on the same host (I/O load balancing).
 
-# What are the external commands users will call on a DataManager?
-##################
-# * the API must closely reflect these commands to facilitate
-#   implementation
-# * the DataManager will contact the MetadataManager to get info it
-#   does not know
-# - list                      : list all files
-# - put filename [dfs_path]   : publish it [under the identifier dfs_path]
-# - get dfs_path [local_path] : retrieve a file and write it [to local_path]
+class Data:
 
-import logging, os, time
+    def __init__(self, identifier, size, index):
+        self.id = identifier
+        self.size = size
+        self.compressed_size = 0 # <=> uncompressed
+        self.index = index
+        self.nodes = []
 
-logger = logging.getLogger()
-# log levels:
-#  debug
-#  info
-#  warning
-#  error
-#  critical
-#  exception
-
-# criteria to cut a file into chunks
-CHUNK_SIZE = 1024*1024
-
-class Metadata:
-
-    def __init__(self, filename, dfs_path = None):
-        self.was_created = False
-        self.size = 0
-        self.name = filename
-        self.dfs_path = self.name
-        self.creation_time = time.time()
-        self.chunks = []
-        if dfs_path != None:
-            self.dfs_path = dfs_path
-        if os.path.isfile (self.name):
-            try:
-                self.size = os.path.getsize(self.name)
-            except os.error:
-                logger.exception ("can't get size of " + self.name)
-        else:
-            logger.error ("no file " + self.name)
+# FBR: add the MetaDataManager to parallel.py for tests
