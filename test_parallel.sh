@@ -30,7 +30,6 @@ if [ ! -f /proc/cpuinfo ] ; then
 fi
 
 cat test_parallel.input | ./parallel.py -i /dev/stdin $nb_procs \
-| cut -d':' -f2 | sed "s/^res(//g" | sed "s/)$//g" | \
-sort -n > test_parallel.output
+| egrep "^o:" | sed "s/^o://g" | sort -n > test_parallel.output
 
 diff test_parallel.output test_parallel.output.reference
