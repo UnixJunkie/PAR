@@ -1,11 +1,11 @@
 MUST DO
 -------
-* main became a pretty big function, cut it into sub-functions so we
-  can read it on one screen
-* use the same logger than DataManager.py in parallel.py instead of print
-  use a shorter log format for time also
 * add data management: single write and multiple read style virtual file-system
   cf Python modules tarfile and gzip
+* use the same logger than DataManager.py in parallel.py instead of print
+  use a shorter log format for time also
+* main became a pretty big function, cut it into sub-functions so we
+  can read it on one screen
 
 NICE TO HAVE
 ------------
