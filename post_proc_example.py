@@ -19,8 +19,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 # don't change the function name and arguments !
-def post_proc((cmd,cmd_output)):
+def post_proc(cmd_output):
     # <change here allowed>
-    res = str(cmd) + ':' + str(cmd_output)
+    res = "post_processed:" + cmd_output
     # </change here allowed>
     return res
