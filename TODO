@@ -1,14 +1,9 @@
 MUST DO
 -------
-* for -p|--post: return both (stdin, stdout and stderr to the user), not just
-  (stdin, stdout) like actually, so that he can troubleshoot if some of his
-  commands fail in error by reading their stderr.
-  Also, this could be quite useful in order to propagate in a multiplexed pipe
-  all the information needed by downstream workers.
 * main became a pretty big function, cut it into sub-functions so we
   can read it on one screen
-* find a cool logger for Python, I begin to feel the need
-  logging and logging.Logger seems the way to go
+* use the same logger than DataManager.py in parallel.py instead of print
+  use a shorter log format for time also
 * add data management: single write and multiple read style virtual file-system
   cf Python modules tarfile and gzip
 
