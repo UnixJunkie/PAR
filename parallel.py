@@ -29,7 +29,7 @@ warning: keep this script compatible with python 2.4 so that we can run it
          on old systems too
 """
 
-import commands, os, socket, string, sys, time, thread
+import commands, os, socket, sys, time, thread
 import Pyro.core, Pyro.naming
 
 from optparse    import OptionParser
@@ -38,6 +38,7 @@ from threading   import Thread
 from Queue       import Queue, Empty
 from ProgressBar import ProgressBar
 from Pyro.errors import PyroError, NamingError, ConnectionClosedError
+from StringIO    import StringIO
 
 class Master(Pyro.core.ObjBase):
     def __init__(self, commands_q, results_q):
@@ -59,13 +60,6 @@ class Master(Pyro.core.ObjBase):
     def add_job(self, cmd):
         self.jobs_queue.put(cmd)
 
-# return cmd and its output as a parsable string like:
-# cmd("cat myfile"):res("myfile_content")
-def parsable_echo((cmd, cmd_out)):
-    cmd_start_tag = "cmd("
-    res_start_tag = "):res("
-    return cmd_start_tag + cmd + res_start_tag + cmd_out + ")"
-
 def get_nb_procs():
     res = None
     try:
@@ -83,8 +77,21 @@ def worker_wrapper(master, lock):
     try:
         work = master.get_work()
         while work != "":
-            cmd_out = commands.getoutput(work)
-            master.put_result((work, cmd_out))
+            cmd_out = StringIO()
+            cmd_out.write("i:" + work)
+            stdin, stdout, stderr = os.popen3(work)
+            stdin.close()
+            for l in stdout:
+                cmd_out.write("o:" + l)
+            stdout.close()
+            for l in stderr:
+                cmd_out.write("e:" + l)
+            stderr.close()
+            in_out_err = cmd_out.getvalue()
+            cmd_out.close()
+            # FBR: compression hook should be here
+            #      this could be pretty big stuff to send
+            master.put_result(in_out_err)
             work = master.get_work()
     except ConnectionClosedError: # server closed because no more jobs to send
         pass
@@ -257,7 +264,7 @@ if __name__ == '__main__':
         if read_from_file:
             # read jobs from local file
             for cmd in commands_file:
-                master.add_job(string.strip(cmd))
+                master.add_job(cmd)
                 nb_jobs += 1
         if connect_to_server:
             print 'Locating Name Server...'
@@ -289,17 +296,17 @@ if __name__ == '__main__':
                 jobs_done += 1
                 if output_to_file:
                     if has_post_proc_option:
-                        output_file.write(post_proc_fun(cmd_and_output) + '\n')
+                        output_file.write(post_proc_fun(cmd_and_output))
                     else:
-                        output_file.write(parsable_echo(cmd_and_output) + '\n')
+                        output_file.write(cmd_and_output)
                 if show_progress:
                     progress_bar.update(jobs_done)
                     progress_bar.draw()
                 elif not output_to_file:
                     if has_post_proc_option:
-                        post_proc_fun(cmd_and_output)
+                        sys.stdout.write(post_proc_fun(cmd_and_output))
                     else:
-                        print parsable_echo(cmd_and_output)
+                        sys.stdout.write(cmd_and_output)
             # cleanup
             pyro_daemon_loop_cond = False
             commands_file.close()
