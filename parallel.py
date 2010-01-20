@@ -294,6 +294,9 @@ if __name__ == '__main__':
             while jobs_done < nb_jobs:
                 cmd_and_output = results_queue.get()
                 jobs_done += 1
+                # FBR: more code factorization possible here
+                #      if there is a default post_proc function which
+                #      is the identity function
                 if output_to_file:
                     if has_post_proc_option:
                         output_file.write(post_proc_fun(cmd_and_output))
