@@ -23,7 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 class MetaData:
-    def __init___(self, fillename):
+    def __init__(self, filename):
         self.name          = filename
         self.size          = None
         self.creation_time = None
@@ -33,9 +33,6 @@ class MetaData:
         # try to:  get the file size
         #          create its chunks
         self.flag = False # set it if everything went alright
-
-    def was_created_successfully(self):
-        return self.flag == True
 
     # FBR: complete this when chunks are described
     #def list_chunks(self):
