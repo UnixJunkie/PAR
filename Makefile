@@ -3,3 +3,6 @@ clean:
 
 test:
 	./test_parallel.sh
+
+check:
+	pychecker parallel.py
