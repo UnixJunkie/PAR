@@ -55,9 +55,20 @@ def usage():
     """
     sys.exit(0)
 
+# code to use here soon
+# if os.path.isfile (self.name):
+#     try:
+#         self.size = os.path.getsize(self.name)
+#     except os.error:
+#         logging.exception ("can't get size of " + self.name)
+# else:
+#     logging.error ("no file " + self.name)
+
 if __name__ == '__main__':
     # FBR: - put this in an infinite loop
-    #      - fork the DataManager out of the CLI
+    #      - fork the DataManager thread out
+    #      - instantiate the MetaDataManager in parallel.py
+    #      - converse with the MetaDataManager
     commands      = ["ls", "put", "get", "quit", "q", "exit"]
     correct_argcs = [2,3,4]
     argc = len(sys.argv)
