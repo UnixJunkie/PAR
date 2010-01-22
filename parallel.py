@@ -251,6 +251,7 @@ if __name__ == '__main__':
             locator = Pyro.naming.NameServerLocator()
             nameserver = locator.getNS(socket.getfqdn(),
                                        port = default_pyro_ns_port)
+            print 'Located'
             daemon.useNameServer(nameserver)
             # connect a new object (unregister previous one first)
             try:
@@ -271,10 +272,11 @@ if __name__ == '__main__':
             locator = Pyro.naming.NameServerLocator()
             ns = locator.getNS(host = remote_server_name,
                                port = default_pyro_ns_port)
+            print 'Located'
             try:
                 print 'Locating master...'
                 URI = ns.resolve('master')
-                print 'URI:',URI
+                print 'Located'
             except NamingError,x:
                 print "Couldn't find object, nameserver says:",x
                 raise SystemExit
