@@ -22,6 +22,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ---
 """
 
+import time
+
 # How is described a file?
 ##########################
 # metadata: <-- managed by MetaDataManager (only one per parallel.py server)
