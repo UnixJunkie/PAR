@@ -26,96 +26,11 @@ import logging, thread, time
 
 from StringIO import StringIO
 
-logging.basicConfig(level=logging.DEBUG,
-                    format='%(asctime)s %(levelname)s %(message)s')
-# log levels:
-#  debug
-#  info
-#  warning
-#  error
-#  critical
-#  exception
-
-# criteria to cut a file into chunks
-# when compressing: we should compress before cuting into chunks so we will
-#                   have fewer chunks to transfer instead of having smaller
-#                   ones (better for latency I think)
-CHUNK_SIZE = 1024*1024
-
-# What is a chunk of Data?
-##########################
-# - chunks must be sortable (in order to retrieve how to recreate the file
-#                            they belong to)
-# - some data (possibly compressed)
-# - data size
-# - the list of nodes where this data is stored
-#   on each node there is a path corresponding to the storage file
-#   the storage backend is a GNU tar file containing only compressed (gzip -1)
-#   files.
-#   We'll think again later if we observe a bottleneck when writing massively
-#   to it. Maybe then we will decide we need one backend per CPU to
-#   parallelize writes on the same host (I/O load balancing).
-class Chunk:
-    def __init__(self, identifier, size, index, node, compressed = False):
-        self.id            = identifier
-        self.size          = size
-        self.index         = index
-        self.nodes         = [node]
-        self.is_compressed = compressed
-
-    # to call when one more node possess this chunk
-    def add_node(self, node_name):
-        self.nodes.append(node_name)
-
-    # to call when one less node possess this chunk
-    def remove_node(self, node_name):
-        try:
-            self.nodes.remove(node_name)
-        except:
-            logging.error("no node: " + node_name +
-                          " for chunk: " + self.id)
-
-# How is described a file?
-##########################
-# metadata: <-- managed by MetaDataManager (only one per parallel.py server)
-# =========
-# - a name
-# - a size (of the uncompressed file)
-# - a creation time and date
-#   [optionaly]
-#   - a user
-#   - a group
-#   - permissions for UGO <-- NOTE: ACLs are fare better than UGO
-# data: <-- managed by DataManager (one per parallel.py client,
-#                                   ??? plus one for the server ???)
-#                                   the server could be run on a cluster
-#                                   frontend, some clusters don't like
-#                                   that nodes use the frontend's
-#                                   disk/network/CPU too heavily
-# maybe we should have DataManagers only inside the cluster, and maybe
-# we need a special mode (--mirror), which means this special DataManager
-# must have all data listed by the MetaDataManager
-# =====
-# - a dictionary of chunks
-class MetaData:
-    # DataManager must not create this object, he must only give all info
-    # to create it to the MetaDataManager which will create and then handle
-    # this object
-    def __init__(self, size, filename, dfs_path = None):
-        self.size          = size
-        self.name          = filename
-        self.dfs_path      = filename
-        self.creation_time = time.time()
-        self.chunks = {} # FBR: chunks list must be initialized
-        # create its chunks ###
-        if dfs_path != None:
-            self.dfs_path = dfs_path
-
-    def get_uniq_ID(self):
-        return self.dfs_path
-
 class MetaDataManager:
     def __init__(self):
+        # FBR: maybe this logger config will move somewhere else
+        logging.basicConfig(level=logging.DEBUG,
+                            format='%(asctime)s %(levelname)s %(message)s')
         ############################################
         # PREVENT SYNCHRONIZED ACCES TO ATTRIBUTES #
         ############################################
