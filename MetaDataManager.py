@@ -22,7 +22,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ---
 """
 
-import logging, os, time
+import logging, thread, time
+
+from StringIO import StringIO
 
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s %(levelname)s %(message)s')
@@ -35,7 +37,43 @@ logging.basicConfig(level=logging.DEBUG,
 #  exception
 
 # criteria to cut a file into chunks
+# when compressing: we should compress before cuting into chunks so we will
+#                   have fewer chunks to transfer instead of having smaller
+#                   ones (better for latency I think)
 CHUNK_SIZE = 1024*1024
+
+# What is a chunk of Data?
+##########################
+# - chunks must be sortable (in order to retrieve how to recreate the file
+#                            they belong to)
+# - some data (possibly compressed)
+# - data size
+# - the list of nodes where this data is stored
+#   on each node there is a path corresponding to the storage file
+#   the storage backend is a GNU tar file containing only compressed (gzip -1)
+#   files.
+#   We'll think again later if we observe a bottleneck when writing massively
+#   to it. Maybe then we will decide we need one backend per CPU to
+#   parallelize writes on the same host (I/O load balancing).
+class Chunk:
+    def __init__(self, identifier, size, index, node, compressed = False):
+        self.id            = identifier
+        self.size          = size
+        self.index         = index
+        self.nodes         = [node]
+        self.is_compressed = compressed
+
+    # to call when one more node possess this chunk
+    def add_node(self, node_name):
+        self.nodes.append(node_name)
+
+    # to call when one less node possess this chunk
+    def remove_node(self, node_name):
+        try:
+            self.nodes.remove(node_name)
+        except:
+            logging.error("no node: " + node_name +
+                          " for chunk: " + self.id)
 
 # How is described a file?
 ##########################
@@ -59,53 +97,91 @@ CHUNK_SIZE = 1024*1024
 # must have all data listed by the MetaDataManager
 # =====
 # - a dictionary of chunks
-class Metadata:
-
-    def __init__(self, filename, dfs_path = None):
-        self.was_created = False
-        self.size = 0
-        self.name = filename
-        self.dfs_path = self.name
+class MetaData:
+    # DataManager must not create this object, he must only give all info
+    # to create it to the MetaDataManager which will create and then handle
+    # this object
+    def __init__(self, size, filename, dfs_path = None):
+        self.size          = size
+        self.name          = filename
+        self.dfs_path      = filename
         self.creation_time = time.time()
-        self.chunks = {}
+        self.chunks = {} # FBR: chunks list must be initialized
+        # create its chunks ###
         if dfs_path != None:
             self.dfs_path = dfs_path
-        if os.path.isfile (self.name):
-            try:
-                self.size = os.path.getsize(self.name)
-            except os.error:
-                logging.exception ("can't get size of " + self.name)
-        else:
-            logging.error ("no file " + self.name)
 
-# What is a chunk of Data?
-##########################
-# - chunks must be sortable (in order to retrieve how to recreate the file
-#                            they belong to)
-# - some data (compressed, we should be able to not use compression via
-#              some option)
-# - uncompressed data size
-# - compressed data size
-# - the list of nodes where this data is stored
-#   on each node there is a path corresponding to the storage file
-#   the storage backend is a GNU tar file containing only compressed (gzip -1)
-#   files.
-#   We'll think again later if we observe a bottleneck when writing massively
-#   to it. Maybe then we will decide we need one backend per CPU to
-#   parallelize writes on the same host (I/O load balancing).
-class Data:
-
-    def __init__(self, identifier, size, index):
-        self.id = identifier
-        self.size = size
-        self.compressed_size = 0 # <=> uncompressed
-        self.index = index
-        self.nodes = []
+    def get_uniq_ID(self):
+        return self.dfs_path
 
 class MetaDataManager:
-
     def __init__(self):
-        self.files = {}
+        ############################################
+        # PREVENT SYNCHRONIZED ACCES TO ATTRIBUTES #
+        ############################################
+        self.lock  = thread.allocate_lock()
+        self.files = {} # must contain MetaData objects, indexed by their
+                        # dfs_path
 
+    # list files
     def ls(self):
-        return "\n".join([self.files[k] for k in self.files.keys()])
+        try:
+            self.lock.acquire()
+            values = self.files.values()
+        finally:
+            self.lock.release()
+        # FBR: maybe we'll need to list things more extensively
+        result = StringIO()
+        for k in values:
+            result.write(k + "\n")
+        result.close()
+        return result.getvalue()
+
+    # publish a new file's meta data object
+    def publish_meta_data(self, size, filename, dfs_path = None):
+        to_publish = MetaData(size, filename, dfs_path)
+        uid = to_publish.get_uniq_ID()
+        try:
+            self.lock.acquire()
+            if self.files.get(uid) == None:
+                self.files[uid] = to_publish
+            else:
+                logging.error("can't overwrite: " + uid)
+        finally:
+            self.lock.release()
+
+    # augment nodes list for an existing file chunk
+    def update_add_node(self, dfs_path, chunk_ID, node_name):
+        try:
+            self.lock.acquire()
+            metadata = self.files.get(dfs_path)
+            if metadata == None:
+                logging.error("no file: " + dfs_path +
+                              " can't add node for chunk: " + chunk_ID)
+            else:
+                chunk = metadata.get_chunk(chunk_ID)
+                if chunk == None:
+                    logging.error("no chunk: " + chunk_ID +
+                                  " for file: " + dfs_path)
+                else:
+                    chunk.add_node(node_name)
+        finally:
+            self.lock.release()
+
+    # shrink nodes list for an existing file chunk
+    def update_remove_node(self, dfs_path, chunk_ID, node_name):
+        try:
+            self.lock.acquire()
+            metadata = self.files.get(dfs_path)
+            if metadata == None:
+                logging.error("no file: " + dfs_path +
+                              " can't del node for chunk: " + chunk_ID)
+            else:
+                chunk = metadata.get_chunk(chunk_ID)
+                if chunk == None:
+                    logging.error("no chunk: " + chunk_ID +
+                                  " for file: " + dfs_path)
+                else:
+                    chunk.remove_node(node_name)
+        finally:
+            self.lock.release()
