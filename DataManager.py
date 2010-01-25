@@ -22,7 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ---
 """
 
-import commands, logging, socket, sys
+import commands, logging, random, socket, sys
 import Pyro.core, Pyro.naming
 
 from tarfile         import TarFile
@@ -51,8 +51,7 @@ class DataManager:
                 self.temp_file = open(self.temp_file_name, 'w')
                 self.temp_file.write("DFS_STORAGE_v00\n")
                 self.temp_file.flush()
-                self.data_store.add(self.temp_file_name,
-                                    str(0) + "/" + self.temp_file_name)
+                self.add_local_chunk(0, self.temp_file_name)
             except:
                 logging.exception("can't create or write to: " +
                                   self.temp_file_name)
@@ -72,6 +71,17 @@ class DataManager:
             raise SystemExit
         self.mdm = Pyro.core.getProxyForURI(URI)
 
+    def create_chunk_name(self, chunk_number, dfs_path):
+        return str(chunk_number) + "/" + dfs_path
+
+    def chunk_name_to_index(self, chunk_name):
+        return int((chunk_name.split("/"))[0])
+
+    def add_local_chunk(self, chunk_number, dfs_path):
+        self.data_store.add(self.temp_file.name,
+                            self.create_chunk_name(chunk_number, dfs_path))
+
+    # publish a local file into the DFS
     def put(self, filename, dfs_path = None):
         if dfs_path == None:
             dfs_path = filename
@@ -86,8 +96,7 @@ class DataManager:
                 self.temp_file.truncate(0)
                 self.temp_file.write(read_buff)
                 self.temp_file.flush()
-                self.data_store.add(self.temp_file.name,
-                                    str(chunk_number) + "/" + dfs_path)
+                self.add_local_chunk(chunk_number, dfs_path)
                 chunk_number += 1
                 read_buff = input_file.read(self.CHUNK_SIZE)
             input_file.close()
@@ -96,8 +105,35 @@ class DataManager:
         except:
             logging.exception("problem while reading " + filename)
 
+    # download a DFS file and dump it to a local file
     def get(self, dfs_path, fs_output_path):
-        pass
+        # get file info
+        meta_info = self.mdm.get_meta_data(dfs_path)
+        # find list of chunks we need to retrieve
+        all_chunks = meta_info.chunks
+        non_local_chunks = []
+        # I use shuffle to increase pipelining and parallelization
+        # of chunk transfers
+        for k in all_chunks.keys:
+            source_hosts = all_chunks[k]
+            if self.hostname not in source_hosts:
+                non_local_chunks.append((k, random.shuffle(source_hosts)))
+        random.shuffle(non_local_chunks)
+        # download them FBR: TODO
+        # dump all chunk from local store in the right order
+        try:
+            f = open(fs_output_path, 'w')
+            for i in range(meta_info.nb_chunks):
+                c = self.create_chunk_name(i, dfs_path)
+                tar = self.data_store.extractfile(c)
+                if tar == None:
+                    logging.error("cound not extract " + c +
+                                  " from local store")
+                else:
+                    f.write(tar.read)
+            f.close()
+        except:
+            logging.exception("problem while writing to " + fs_output_path)
 
 # What are the external commands users will call on a DataManager?
 ##################################################################
