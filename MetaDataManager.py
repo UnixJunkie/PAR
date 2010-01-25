@@ -25,7 +25,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import logging, thread
 import Pyro.core, Pyro.naming
 
-from StringIO import StringIO
 from MetaData import MetaData
 
 class MetaDataManager(Pyro.core.ObjBase):
@@ -45,21 +44,21 @@ class MetaDataManager(Pyro.core.ObjBase):
 
     # list files
     def ls(self):
+        values = []
         try:
             self.lock.acquire()
             values = self.files.values()
         finally:
             self.lock.release()
         # FBR: maybe we'll need to list things more extensively
-        result = StringIO()
-        for k in values:
-            result.write(k + "\n")
-        result.close()
-        return result.getvalue()
+        res = []
+        for v in values:
+            res.append(v.get_uniq_ID())
+        return res
 
     # publish a new file's meta data object
-    def publish_meta_data(self, size, filename, dfs_path = None):
-        to_publish = MetaData(size, filename, dfs_path)
+    def publish_meta_data(self, dfs_path, publication_host, size, nb_chunks):
+        to_publish = MetaData(dfs_path, publication_host, size, nb_chunks)
         uid = to_publish.get_uniq_ID()
         try:
             self.lock.acquire()
