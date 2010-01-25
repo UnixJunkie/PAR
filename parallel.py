@@ -40,6 +40,8 @@ from ProgressBar import ProgressBar
 from Pyro.errors import PyroError, NamingError, ConnectionClosedError
 from StringIO    import StringIO
 
+from MetaDataManager import MetaDataManager
+
 class Master(Pyro.core.ObjBase):
     def __init__(self, commands_q, results_q):
         Pyro.core.ObjBase.__init__(self)
@@ -212,6 +214,8 @@ if __name__ == '__main__':
         has_post_proc_option  = post_proc_option != None
         is_server             = options.is_server
         daemon                = None
+        has_data_server       = options.data_server
+        meta_data_manager     = None
         if output_to_file:
             output_file = open(output_file_option, 'a')
         if read_from_file:  # mandatory option
@@ -253,14 +257,17 @@ if __name__ == '__main__':
                                        port = default_pyro_ns_port)
             print 'Located'
             daemon.useNameServer(nameserver)
-            # connect a new object (unregister previous one first)
-            try:
-                # 'master' is our outside world name
-                nameserver.unregister('master')
-            except NamingError:
-                pass
-            # publish master object
-            daemon.connect(master,'master')
+            if has_data_server:
+                meta_data_manager = MetaDataManager()
+            # unpublish previous objects
+            for u in ['master', 'meta_data_manager']:
+                try:
+                    nameserver.unregister(u)
+                except NamingError:
+                    pass
+            # publish objects
+            daemon.connect(master, 'master')
+            daemon.connect(meta_data_manager, 'meta_data_manager')
             thread.start_new_thread(master_wrapper, (daemon, None))
         if read_from_file:
             # read jobs from local file
