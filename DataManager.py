@@ -22,7 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ---
 """
 
-import commands, logging, socket, sys, tarfile
+import commands, logging, socket, sys
 import Pyro.core, Pyro.naming
 
 from tarfile         import TarFile
@@ -51,13 +51,13 @@ class DataManager:
                 self.temp_file = open(self.temp_file_name, 'w')
                 self.temp_file.write("DFS_STORAGE_v00\n")
                 self.temp_file.flush()
+                self.data_store.add(self.temp_file_name,
+                                    str(0) + "/" + self.temp_file_name)
             except:
-                logging.fatal("can't create or write to: " +
-                              self.temp_file_name)
-            self.data_store.add(self.temp_file.name,
-                                0 + "/" + self.temp_file_name)
+                logging.exception("can't create or write to: " +
+                                  self.temp_file_name)
         except:
-            logging.fatal("can't create or write to: " + storage_file)
+            logging.exception("can't create or write to: " + storage_file)
         logging.info('Locating Name Server...')
         locator = Pyro.naming.NameServerLocator()
         ns = locator.getNS(host = remote_server,
@@ -68,28 +68,31 @@ class DataManager:
             URI = ns.resolve('meta_data_manager')
             logging.info('Located')
         except NamingError,x:
-            logging.fatal("Couldn't find object, nameserver says: " + x)
+            logging.exception("Couldn't find object, nameserver says: " + x)
             raise SystemExit
         self.mdm = Pyro.core.getProxyForURI(URI)
 
-    def put(self, filename):
+    def put(self, filename, dfs_path = None):
+        if dfs_path == None:
+            dfs_path = filename
         # FBR: add compression of added file here
         try:
-            self.size = 0
+            file_size = 0
             chunk_number = 0
             input_file = open(filename, 'r')
             read_buff = input_file.read(self.CHUNK_SIZE)
             while read_buff != '':
-                self.size += len(read_buff)
+                file_size += len(read_buff)
                 self.temp_file.truncate(0)
                 self.temp_file.write(read_buff)
                 self.temp_file.flush()
                 self.data_store.add(self.temp_file.name,
-                                    str(chunk_number) + "/" + filename)
+                                    str(chunk_number) + "/" + dfs_path)
                 chunk_number += 1
                 read_buff = input_file.read(self.CHUNK_SIZE)
             input_file.close()
-            # FBR: store its metadata: filename, number of chunks
+            self.mdm.publish_meta_data(file_size, dfs_path, self.hostname,
+                                       chunk_number)
         except:
             logging.exception("problem while reading " + filename)
 
@@ -125,6 +128,7 @@ if __name__ == '__main__':
     #      - find a way to communicate with him locally after he was forked
     dm = DataManager("/tmp/storage.tar", commands.getoutput("hostname"), 9090)
     dm.put("/tmp/big_file")
+    print(dm.mdm.ls())
 #     commands      = ["ls", "put", "get", "quit", "q", "exit"]
 #     correct_argcs = [2,3,4]
 #     argc = len(sys.argv)
