@@ -79,6 +79,8 @@ def worker_wrapper(master, lock):
     try:
         work = master.get_work()
         while work != "":
+            # there is a bug in StringIO, calling getvalue on one where it
+            # was never written throws an exception
             cmd_out = StringIO()
             cmd_out.write("i:" + work)
             stdin, stdout, stderr = os.popen3(work)
