@@ -22,9 +22,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ---
 """
 
-import logging, socket, sys
+import commands, logging, socket, sys, tarfile
 import Pyro.core, Pyro.naming
 
+from tarfile         import TarFile
 from Chunk           import Chunk
 from MetaDataManager import MetaDataManager
 from Pyro.errors     import NamingError
@@ -35,12 +36,28 @@ class DataManager:
         # when compressing, we must compress before cuting into chunks so we
         # will have fewer chunks to transfer instead of having smaller ones
         # (better for network latency I think)
-        self.CHUNK_SIZE = 1024*1024
-        self.data_store = storage_file
-        # FBR: create and write to it right now so we are sure it will work
-        #      later on
-        self.hostname   = socket.getfqdn()
-        self.chunks     = {}
+        self.CHUNK_SIZE     = 1024*1024
+        self.data_store     = None
+        self.hostname       = socket.getfqdn()
+        self.chunks         = {}
+        self.temp_file      = None
+        self.temp_file_name = commands.getoutput("echo /tmp/$USER.hostname")
+        try:
+            # FBR: we should use an indexed file rather than tar to avoid
+            #      using a temporary file
+            #      The index should contain begin and end offset of each chunk
+            self.data_store = TarFile(storage_file, 'w')
+            try:
+                self.temp_file = open(self.temp_file_name, 'w')
+                self.temp_file.write("DFS_STORAGE_v00\n")
+                self.temp_file.flush()
+            except:
+                logging.fatal("can't create or write to: " +
+                              self.temp_file_name)
+            self.data_store.add(self.temp_file.name,
+                                0 + "/" + self.temp_file_name)
+        except:
+            logging.fatal("can't create or write to: " + storage_file)
         logging.info('Locating Name Server...')
         locator = Pyro.naming.NameServerLocator()
         ns = locator.getNS(host = remote_server,
@@ -55,11 +72,28 @@ class DataManager:
             raise SystemExit
         self.mdm = Pyro.core.getProxyForURI(URI)
 
-    def put(self, file):
-        # FBR: finish this
-        pass
+    def put(self, filename):
+        # FBR: add compression of added file here
+        try:
+            self.size = 0
+            chunk_number = 0
+            input_file = open(filename, 'r')
+            read_buff = input_file.read(self.CHUNK_SIZE)
+            while read_buff != '':
+                self.size += len(read_buff)
+                self.temp_file.truncate(0)
+                self.temp_file.write(read_buff)
+                self.temp_file.flush()
+                self.data_store.add(self.temp_file.name,
+                                    str(chunk_number) + "/" + filename)
+                chunk_number += 1
+                read_buff = input_file.read(self.CHUNK_SIZE)
+            input_file.close()
+            # FBR: store its metadata: filename, number of chunks
+        except:
+            logging.exception("problem while reading " + filename)
 
-    def get(self):
+    def get(self, dfs_path, fs_output_path):
         pass
 
 # What are the external commands users will call on a DataManager?
@@ -88,46 +122,38 @@ if __name__ == '__main__':
                         format='%(asctime)s %(levelname)s %(message)s')
     # FBR: - put this in an infinite loop
     #      - fork the DataManager thread out
-    #      - instantiate the MetaDataManager in parallel.py later
-    #        and call its methods remotely
-    mdm = MetaDataManager()
-    commands      = ["ls", "put", "get", "quit", "q", "exit"]
-    correct_argcs = [2,3,4]
-    argc = len(sys.argv)
-    if argc not in correct_argcs:
-        usage()
-    command = sys.argv[1]
-    param_1 = None
-    if argc == 3:
-        param_1 = sys.argv[2]
-    param_2 = None
-    if argc == 4:
-        param_2 = sys.argv[3]
-    if command == "ls":
-        if argc != 2:
-            logging.error("ls takes no argument")
-            usage()
-        logging.debug("going to exec: " + command)
-    elif command == "put":
-        if argc not in [3,4]:
-            logging.error("put takes one or two arguments")
-            usage()
-        logging.debug("going to exec: " + command)
-        # code to use here soon
-        # if os.path.isfile (self.name):
-        #     try:
-        #         self.size = os.path.getsize(self.name)
-        #     except os.error:
-        #         logging.exception ("can't get size of " + self.name)
-        # else:
-        #     logging.error ("no file " + self.name)
-    elif command == "get":
-        if argc not in [3,4]:
-            logging.error("get takes one or two arguments")
-            usage()
-        logging.debug("going to exec: " + command)
-    elif command in ["quit", "q", "exit"]:
-        sys.exit(0)
-    else:
-        logging.error("unknown command: " + command)
-        usage()
+    #      - find a way to communicate with him locally after he was forked
+    dm = DataManager("/tmp/storage.tar", commands.getoutput("hostname"), 9090)
+    dm.put("/tmp/big_file")
+#     commands      = ["ls", "put", "get", "quit", "q", "exit"]
+#     correct_argcs = [2,3,4]
+#     argc = len(sys.argv)
+#     if argc not in correct_argcs:
+#         usage()
+#     command = sys.argv[1]
+#     param_1 = None
+#     if argc == 3:
+#         param_1 = sys.argv[2]
+#     param_2 = None
+#     if argc == 4:
+#         param_2 = sys.argv[3]
+#     if command == "ls":
+#         if argc != 2:
+#             logging.error("ls takes no argument")
+#             usage()
+#         logging.debug("going to exec: " + command)
+#     elif command == "put":
+#         if argc not in [3,4]:
+#             logging.error("put takes one or two arguments")
+#             usage()
+#         logging.debug("going to exec: " + command)
+#     elif command == "get":
+#         if argc not in [3,4]:
+#             logging.error("get takes one or two arguments")
+#             usage()
+#         logging.debug("going to exec: " + command)
+#     elif command in ["quit", "q", "exit"]:
+#         sys.exit(0)
+#     else:
+#         logging.error("unknown command: " + command)
+#         usage()
