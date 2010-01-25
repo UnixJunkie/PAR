@@ -69,6 +69,16 @@ class MetaDataManager(Pyro.core.ObjBase):
         finally:
             self.lock.release()
 
+    # retrieve a file's meta data
+    def get_meta_data(self, dfs_path):
+        res = None
+        try:
+            self.lock.acquire()
+            res = self.files.get(dfs_path)
+        finally:
+            self.lock.release()
+        return res
+
     # augment nodes list for an existing file chunk
     def update_add_node(self, dfs_path, chunk_ID, node_name):
         try:
