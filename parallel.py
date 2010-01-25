@@ -259,8 +259,6 @@ if __name__ == '__main__':
                                        port = default_pyro_ns_port)
             print 'Located'
             daemon.useNameServer(nameserver)
-            if has_data_server:
-                meta_data_manager = MetaDataManager()
             # unpublish previous objects
             for u in ['master', 'meta_data_manager']:
                 try:
@@ -269,7 +267,9 @@ if __name__ == '__main__':
                     pass
             # publish objects
             daemon.connect(master, 'master')
-            daemon.connect(meta_data_manager, 'meta_data_manager')
+            if has_data_server:
+                meta_data_manager = MetaDataManager()
+                daemon.connect(meta_data_manager, 'meta_data_manager')
             thread.start_new_thread(master_wrapper, (daemon, None))
         if read_from_file:
             # read jobs from local file
