@@ -55,6 +55,7 @@ class MetaData:
         self.creation_time = time.time()
         self.size          = size
         self.chunks        = {}
+        self.nb_chunks     = nb_chunks
         for i in range(nb_chunks):
             self.chunks[str(i) + "/" + dfs_path] = [publication_host]
 
