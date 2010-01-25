@@ -23,12 +23,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 import logging, thread
+import Pyro.core, Pyro.naming
 
 from StringIO import StringIO
 from MetaData import MetaData
 
-class MetaDataManager:
+class MetaDataManager(Pyro.core.ObjBase):
     def __init__(self):
+        Pyro.core.ObjBase.__init__(self)
         # FBR: maybe this logger config will move somewhere else
         logging.basicConfig(level=logging.DEBUG,
                             format='%(asctime)s %(levelname)s %(message)s')
@@ -36,6 +38,8 @@ class MetaDataManager:
         # PREVENT SYNCHRONIZED ACCES TO ATTRIBUTES #
         ############################################
         self.lock  = thread.allocate_lock()
+        # FBR: should have 2 locks, one for files info, one for chunks list
+        #      should remove possible bottleneck
         self.files = {} # must contain MetaData objects, indexed by their
                         # dfs_path
 
