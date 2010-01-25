@@ -50,16 +50,13 @@ class MetaData:
     # DataManager must not create this object, he must only give all info
     # to create it to the MetaDataManager which will create and then handle
     # this object
-    def __init__(self, size, filename, dfs_path = None):
-        self.size          = size
-        self.name          = filename
-        self.dfs_path      = filename
+    def __init__(self, dfs_path, publication_host, size, nb_chunks):
+        self.dfs_path      = dfs_path
         self.creation_time = time.time()
-        self.chunks = {}
-        # FBR: chunks list must be initialized !!!
-        #      When and where?
-        if dfs_path != None:
-            self.dfs_path = dfs_path
+        self.size          = size
+        self.chunks        = {}
+        for i in range(nb_chunks):
+            self.chunks[str(i) + "/" + dfs_path] = [publication_host]
 
     def get_uniq_ID(self):
         return self.dfs_path
