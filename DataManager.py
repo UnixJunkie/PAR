@@ -91,8 +91,8 @@ class DataManager:
                 chunk_number += 1
                 read_buff = input_file.read(self.CHUNK_SIZE)
             input_file.close()
-            self.mdm.publish_meta_data(file_size, dfs_path, self.hostname,
-                                       chunk_number)
+            self.mdm.publish_meta_data(dfs_path, self.hostname,
+                                       chunk_number, file_size)
         except:
             logging.exception("problem while reading " + filename)
 
