@@ -23,12 +23,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 import commands, logging, random, socket, sys
-import Pyro.core, Pyro.naming
+# import Pyro.core, Pyro.naming
 
 from tarfile         import TarFile
 from Chunk           import Chunk
 from MetaDataManager import MetaDataManager
-from Pyro.errors     import NamingError
+# from Pyro.errors     import NamingError
 
 class DataManager:
 
@@ -57,19 +57,20 @@ class DataManager:
                                   self.temp_file_name)
         except:
             logging.exception("can't create or write to: " + storage_file)
-        logging.info('Locating Name Server...')
-        locator = Pyro.naming.NameServerLocator()
-        ns = locator.getNS(host = remote_server,
-                           port = remote_port)
-        logging.info('Located')
-        try:
-            logging.info('Locating meta_data_manager...')
-            URI = ns.resolve('meta_data_manager')
-            logging.info('Located')
-        except NamingError,x:
-            logging.exception("Couldn't find object, nameserver says: " + x)
-            raise SystemExit
-        self.mdm = Pyro.core.getProxyForURI(URI)
+#         logging.info('Locating Name Server...')
+#         locator = Pyro.naming.NameServerLocator()
+#         ns = locator.getNS(host = remote_server,
+#                            port = remote_port)
+#         logging.info('Located')
+#         try:
+#             logging.info('Locating meta_data_manager...')
+#             URI = ns.resolve('meta_data_manager')
+#             logging.info('Located')
+#         except NamingError,x:
+#             logging.exception("Couldn't find object, nameserver says: " + x)
+#             raise SystemExit
+#        self.mdm = Pyro.core.getProxyForURI(URI)
+        self.mdm = MetaDataManager()
 
     def create_chunk_name(self, chunk_number, dfs_path):
         return str(chunk_number) + "/" + dfs_path
@@ -88,7 +89,7 @@ class DataManager:
         # FBR: add compression of added file here
         try:
             file_size = 0
-            chunk_number = 0
+            nb_chunks = 0
             input_file = open(filename, 'r')
             read_buff = input_file.read(self.CHUNK_SIZE)
             while read_buff != '':
@@ -96,12 +97,12 @@ class DataManager:
                 self.temp_file.truncate(0)
                 self.temp_file.write(read_buff)
                 self.temp_file.flush()
-                self.add_local_chunk(chunk_number, dfs_path)
-                chunk_number += 1
+                self.add_local_chunk(nb_chunks, dfs_path)
+                nb_chunks += 1
                 read_buff = input_file.read(self.CHUNK_SIZE)
             input_file.close()
             self.mdm.publish_meta_data(dfs_path, self.hostname,
-                                       chunk_number, file_size)
+                                       file_size, nb_chunks)
         except:
             logging.exception("problem while reading " + filename)
 
@@ -162,9 +163,15 @@ if __name__ == '__main__':
     # FBR: - put this in an infinite loop
     #      - fork the DataManager thread out
     #      - find a way to communicate with him locally after he was forked
+    print commands.getoutput("echo 0 && date")
     dm = DataManager("/tmp/storage.tar", commands.getoutput("hostname"), 9090)
+    print commands.getoutput("echo 1 && date")
     dm.put("/tmp/big_file")
-    print(dm.mdm.ls())
+#     print commands.getoutput("echo 2 && date")
+#     print(dm.mdm.ls())
+#     print commands.getoutput("echo 3 && date")
+#     dm.get("/tmp/big_file", "/tmp/from_dfs")
+#     print commands.getoutput("echo 4 && date")
 #     commands      = ["ls", "put", "get", "quit", "q", "exit"]
 #     correct_argcs = [2,3,4]
 #     argc = len(sys.argv)
