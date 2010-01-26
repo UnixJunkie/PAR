@@ -87,10 +87,10 @@ class DataManager:
         if dfs_path == None:
             dfs_path = filename
         # FBR: add compression of added file here
+        input_file = open(filename, 'r')
         try:
             file_size = 0
             nb_chunks = 0
-            input_file = open(filename, 'r')
             read_buff = input_file.read(self.CHUNK_SIZE)
             while read_buff != '':
                 file_size += len(read_buff)
@@ -100,11 +100,11 @@ class DataManager:
                 self.add_local_chunk(nb_chunks, dfs_path)
                 nb_chunks += 1
                 read_buff = input_file.read(self.CHUNK_SIZE)
-            input_file.close()
             self.mdm.publish_meta_data(dfs_path, self.hostname,
                                        file_size, nb_chunks)
         except:
             logging.exception("problem while reading " + filename)
+        input_file.close()
 
     # download a DFS file and dump it to a local file
     def get(self, dfs_path, fs_output_path):
@@ -113,28 +113,30 @@ class DataManager:
         # find list of chunks we need to retrieve
         all_chunks = meta_info.chunks
         non_local_chunks = []
-        # I use shuffle to increase pipelining and parallelization
+        # shuffle should increase pipelining and parallelization
         # of chunk transfers
         for k in all_chunks.keys:
             source_hosts = all_chunks[k]
+            # FBR: linear search instead of instantaneous lookup...
             if self.hostname not in source_hosts:
                 non_local_chunks.append((k, random.shuffle(source_hosts)))
         random.shuffle(non_local_chunks)
-        # download them FBR: TODO
+        # FBR: TODO download them then publish current host as hosting
+        #      this chunks too
         # dump all chunk from local store in the right order
+        output_file = open(fs_output_path, 'w')
         try:
-            f = open(fs_output_path, 'w')
             for i in range(meta_info.nb_chunks):
                 c = self.create_chunk_name(i, dfs_path)
-                tar = self.data_store.extractfile(c)
-                if tar == None:
-                    logging.error("cound not extract " + c +
+                untared_file = self.data_store.extractfile(c)
+                if untared_file == None:
+                    logging.fatal("could not extract " + c +
                                   " from local store")
                 else:
-                    f.write(tar.read)
-            f.close()
+                    output_file.write(untared_file.read)
         except:
             logging.exception("problem while writing to " + fs_output_path)
+        output_file.close()
 
 # What are the external commands users will call on a DataManager?
 ##################################################################
@@ -167,8 +169,8 @@ if __name__ == '__main__':
     dm = DataManager("/tmp/storage.tar", commands.getoutput("hostname"), 9090)
     print commands.getoutput("echo 1 && date")
     dm.put("/tmp/big_file")
-#     print commands.getoutput("echo 2 && date")
-#     print(dm.mdm.ls())
+    print commands.getoutput("echo 2 && date")
+    print(dm.mdm.ls())
 #     print commands.getoutput("echo 3 && date")
 #     dm.get("/tmp/big_file", "/tmp/from_dfs")
 #     print commands.getoutput("echo 4 && date")
