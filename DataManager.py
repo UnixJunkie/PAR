@@ -22,7 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ---
 """
 
-import commands, logging, os, random, socket, sys, thread
+import commands, logging, os, random, socket, sys, stat, thread
 # import Pyro.core, Pyro.naming
 
 from tarfile         import TarFile
@@ -54,6 +54,8 @@ class DataManager:
             # to be changed
             self.lock.acquire()
             self.data_store = TarFile(self.storage_file, 'w')
+            os.chmod(self.data_store.fileobj.name,
+                     stat.S_IRUSR | stat.S_IWUSR) # <=> chmod 600 ...
             self.lock.release()
             temp_file = TemporaryFile()
             temp_file.write("DFS_STORAGE_v00\n")
