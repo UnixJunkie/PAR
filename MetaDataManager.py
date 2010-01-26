@@ -31,86 +31,91 @@ class MetaDataManager(Pyro.core.ObjBase):
     def __init__(self):
         Pyro.core.ObjBase.__init__(self)
         # FBR: maybe this logger config will move somewhere else
-        logging.basicConfig(level=logging.DEBUG,
-                            format='%(asctime)s %(levelname)s %(message)s')
-        ############################################
-        # PREVENT SYNCHRONIZED ACCES TO ATTRIBUTES #
-        ############################################
-        self.lock  = thread.allocate_lock()
-        # FBR: should have 2 locks, one for files info, one for chunks list
-        #      should remove possible bottleneck
-        self.files = {} # must contain MetaData objects, indexed by their
-                        # dfs_path
+        logging.basicConfig(level  = logging.DEBUG,
+                            format = '%(asctime)s %(levelname)s %(message)s')
+        self.files_lock  = thread.allocate_lock()
+        self.chunks_lock = thread.allocate_lock()
+        ################################################
+        # PREVENT CONCURRENT ACCES TO THESE ATTRIBUTES #
+        ################################################
+        self.files  = {} # MetaData objects indexed by their dfs_path
+        self.chunks = {} # mapping chunk_ID -> source nodes list
+        self.nodes  = [] # chunk sources
 
-    # list files
-    def ls(self):
-        values = []
-        try:
-            self.lock.acquire()
-            values = self.files.values()
-        finally:
-            self.lock.release()
-        # FBR: maybe we'll need to list things more extensively
+    def ls_files(self):
         res = []
-        for v in values:
+        self.files_lock.acquire()
+        for v in self.files.values():
             res.append(v.get_uniq_ID())
+        self.files_lock.release()
+        return res
+
+    def ls_chunks(self):
+        res = []
+        self.chunks_lock.acquire()
+        for v in self.chunks.keys():
+            res.append(v + ':' + str(self.chunks[v]))
+        self.chunks_lock.release()
+        return res
+
+    def ls_nodes(self):
+        self.chunks_lock.acquire()
+        res = list(self.nodes)
+        self.chunks_lock.release()
+        return res
+
+    def resolve(self, chunks_list):
+        res = []
+        self.chunks_lock.acquire()
+        for c in chunks_list:
+            res.append((c, self.chunks[c]))
+        self.chunks_lock.release()
         return res
 
     # publish a new file's meta data object
     def publish_meta_data(self, dfs_path, publication_host, size, nb_chunks):
+        give_up = False
         to_publish = MetaData(dfs_path, publication_host, size, nb_chunks)
         uid = to_publish.get_uniq_ID()
-        try:
-            self.lock.acquire()
-            if self.files.get(uid) == None:
-                self.files[uid] = to_publish
-            else:
-                logging.error("can't overwrite: " + uid)
-        finally:
-            self.lock.release()
+        self.files_lock.acquire()
+        if self.files.get(uid) == None:
+            self.files[uid] = to_publish
+        else:
+            logging.error("can't overwrite: " + uid)
+            give_up = True
+        self.files_lock.release()
+        if not give_up:
+            if dfs_path.startswith('/'):
+                dfs_path = dfs_path[1:]
+            self.chunks_lock.acquire()
+            self.nodes.append(publication_host)
+            for c in to_publish.get_chunk_names():
+                self.chunks[c] = [publication_host]
+            self.chunks_lock.release()
 
     # retrieve a file's meta data
     def get_meta_data(self, dfs_path):
-        res = None
-        try:
-            self.lock.acquire()
-            res = self.files.get(dfs_path)
-        finally:
-            self.lock.release()
+        self.files_lock.acquire()
+        res = self.files.get(dfs_path)
+        self.files_lock.release()
         return res
 
     # augment nodes list for an existing file chunk
     def update_add_node(self, dfs_path, chunk_ID, node_name):
-        try:
-            self.lock.acquire()
-            metadata = self.files.get(dfs_path)
-            if metadata == None:
-                logging.error("no file: " + dfs_path +
-                              " can't add node for chunk: " + chunk_ID)
+        self.files_lock.acquire()
+        metadata = self.files.get(dfs_path)
+        if metadata == None:
+            logging.error("no file: " + dfs_path +
+                          " can't add node for chunk: " + chunk_ID)
+        else:
+            chunk = metadata.get_chunk(chunk_ID)
+            if chunk == None:
+                logging.error("no chunk: " + chunk_ID +
+                              " for file: " + dfs_path)
             else:
-                chunk = metadata.get_chunk(chunk_ID)
-                if chunk == None:
-                    logging.error("no chunk: " + chunk_ID +
-                                  " for file: " + dfs_path)
-                else:
-                    chunk.add_node(node_name)
-        finally:
-            self.lock.release()
+                chunk.add_node(node_name)
+        self.files_lock.release()
 
     # shrink nodes list for an existing file chunk
     def update_remove_node(self, dfs_path, chunk_ID, node_name):
-        try:
-            self.lock.acquire()
-            metadata = self.files.get(dfs_path)
-            if metadata == None:
-                logging.error("no file: " + dfs_path +
-                              " can't del node for chunk: " + chunk_ID)
-            else:
-                chunk = metadata.get_chunk(chunk_ID)
-                if chunk == None:
-                    logging.error("no chunk: " + chunk_ID +
-                                  " for file: " + dfs_path)
-                else:
-                    chunk.remove_node(node_name)
-        finally:
-            self.lock.release()
+        pass
