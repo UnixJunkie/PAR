@@ -46,7 +46,7 @@ class DataManager:
         self.hostname       = socket.getfqdn()
         self.storage_file   = ("/tmp/dfs_" + os.getlogin() +
                                "_at_" + self.hostname)
-        self.chunks         = {}
+        self.local_chunks   = {}
         try:
             # The TarFile interface forces us to use a temporary file.
             # Maybe it makes some unnecessary data copy, however having
@@ -81,19 +81,29 @@ class DataManager:
         self.mdm = MetaDataManager()
 
     def get_chunk_name(self, chunk_number, dfs_path):
-        return str(chunk_number) + "/" + dfs_path
+        if dfs_path.startswith('/'):
+            dfs_path = dfs_path[1:]
+        return str(chunk_number) + '/' + dfs_path
 
     def chunk_name_to_index(self, chunk_name):
-        return int((chunk_name.split("/"))[0])
+        return int((chunk_name.split('/'))[0])
 
     def add_local_chunk(self, chunk_number, dfs_path, tmp_file):
+        chunk_name = self.get_chunk_name(chunk_number, dfs_path)
         self.lock.acquire()
-        tar_info = (self.data_store.gettarinfo
-                    (arcname = self.get_chunk_name(chunk_number, dfs_path),
-                     fileobj = tmp_file))
+        tar_info = self.data_store.gettarinfo (arcname = chunk_name,
+                                               fileobj = tmp_file)
         self.data_store.addfile(tar_info, tmp_file)
         self.data_store.fileobj.flush()
+        self.local_chunks[chunk_name] = True
         self.lock.release()
+
+    def ls_local_chunks(self):
+        res = []
+        self.lock.acquire()
+        res = self.local_chunks.keys()
+        self.lock.release()
+        return res
 
     # publish a local file into the DFS
     def put(self, filename, dfs_path = None):
@@ -123,16 +133,17 @@ class DataManager:
 
     # download a DFS file and dump it to a local file
     def get(self, dfs_path, fs_output_path):
+        # shuffle is here to increase pipelining and parallelization
+        # of transfers
         meta_info = self.mdm.get_meta_data(dfs_path)
-        all_chunks = meta_info.chunks
-        non_local_chunks = []
-        # shuffle should increase pipelining and parallelization of transfers
-        for k in all_chunks.keys():
-            source_hosts = all_chunks[k]
-            # FBR: linear search instead of instantaneous lookup...
-            if self.hostname not in source_hosts:
-                non_local_chunks.append((k, random.shuffle(source_hosts)))
-        random.shuffle(non_local_chunks)
+        remote_chunks = []
+        self.lock.acquire()
+        for c in meta_info.get_chunk_names():
+            if self.local_chunks.get(c) == None:
+                remote_chunks.append(c)
+        self.lock.release()
+        random.shuffle(remote_chunks)
+        remote_chunks_mapping = self.mdm.resolve(remote_chunks)
         # FBR: TODO download them then publish current host as hosting
         #      this chunks too
         #
@@ -146,8 +157,7 @@ class DataManager:
             self.lock.release()
             if dfs_path.startswith('/'):
                 dfs_path = dfs_path[1:]
-            for i in range(meta_info.nb_chunks):
-                c = self.get_chunk_name(i, dfs_path)
+            for c in meta_info.get_chunk_names():
                 self.lock.acquire()
                 untared_file = read_only_data_store.extractfile(c)
                 self.lock.release()
@@ -189,15 +199,18 @@ if __name__ == '__main__':
     # FBR: - put this in an infinite loop
     #      - fork the DataManager thread out as a background daemon
     #      - find a way to communicate with him locally after he was forked
-    print commands.getoutput("echo 0 `date`")
     dm = DataManager(commands.getoutput("hostname"), 9090)
-    print commands.getoutput("echo 1 `date`")
     dm.put("/tmp/big_file")
-    print commands.getoutput("echo 2 `date`")
-    print(dm.mdm.ls())
+    print "all files:"
+    print dm.mdm.ls_files()
+    print "all nodes:"
+    print dm.mdm.ls_nodes()
+    print "all chunks:"
+    print dm.mdm.ls_chunks()
+    print "local chunks:"
+    print dm.ls_local_chunks()
     print commands.getoutput("echo 3 `date`")
     dm.get("/tmp/big_file", "/tmp/big_file_from_dfs")
-    print commands.getoutput("echo 4 `date`")
 #     commands      = ["ls", "put", "get", "quit", "q", "exit"]
 #     correct_argcs = [2,3,4]
 #     argc = len(sys.argv)
