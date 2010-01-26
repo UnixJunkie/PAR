@@ -54,10 +54,15 @@ class MetaData:
         self.dfs_path      = dfs_path
         self.creation_time = time.time()
         self.size          = size
-        self.chunks        = {}
         self.nb_chunks     = nb_chunks
-        for i in range(nb_chunks):
-            self.chunks[str(i) + "/" + dfs_path] = [publication_host]
+        self.chunks_list   = []
+        if dfs_path.startswith('/'):
+            dfs_path = dfs_path[1:]
+        for c in range(nb_chunks):
+            self.chunks_list.append(str(c) + '/' + dfs_path)
 
     def get_uniq_ID(self):
         return self.dfs_path
+
+    def get_chunk_names(self):
+        return self.chunks_list
