@@ -80,7 +80,8 @@ def worker_wrapper(master, lock):
         work = master.get_work()
         while work != "":
             # there is a bug in StringIO, calling getvalue on one where it
-            # was never written throws an exception
+            # was never written throws an exception instead of returning an
+            # empty string
             cmd_out = StringIO()
             cmd_out.write("i:" + work)
             stdin, stdout, stderr = os.popen3(work)
@@ -331,6 +332,8 @@ if __name__ == '__main__':
             l.acquire()
         # stop pyro server-side stuff
         if is_server:
+            if has_data_server:
+                daemon.disconnect(meta_data_manager)
             daemon.disconnect(master)
             daemon.shutdown()
     except SystemExit:
