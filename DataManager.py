@@ -123,13 +123,10 @@ class DataManager:
 
     # download a DFS file and dump it to a local file
     def get(self, dfs_path, fs_output_path):
-        # get file info
         meta_info = self.mdm.get_meta_data(dfs_path)
-        # find list of chunks we need to retrieve
         all_chunks = meta_info.chunks
         non_local_chunks = []
-        # shuffle should increase pipelining and parallelization
-        # of chunk transfers
+        # shuffle should increase pipelining and parallelization of transfers
         for k in all_chunks.keys():
             source_hosts = all_chunks[k]
             # FBR: linear search instead of instantaneous lookup...
@@ -138,7 +135,9 @@ class DataManager:
         random.shuffle(non_local_chunks)
         # FBR: TODO download them then publish current host as hosting
         #      this chunks too
-        # dump all chunk from local store in the right order
+        #
+        # dump all chunks from local store to fs_output_path and
+        # in the right order please
         original_dfs_path = dfs_path
         output_file = open(fs_output_path, 'wb')
         try:
@@ -188,7 +187,7 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG,
                         format='%(asctime)s %(levelname)s %(message)s')
     # FBR: - put this in an infinite loop
-    #      - fork the DataManager thread out
+    #      - fork the DataManager thread out as a background daemon
     #      - find a way to communicate with him locally after he was forked
     print commands.getoutput("echo 0 `date`")
     dm = DataManager(commands.getoutput("hostname"), 9090)
