@@ -106,70 +106,80 @@ class DataManager:
 
     # publish a local file into the DFS
     def put(self, filename, dfs_path = None):
-        if dfs_path == None:
-            dfs_path = filename
-        # compression of added file hook should be here
-        input_file = open(filename, 'rb')
-        try:
-            file_size = 0
-            chunk_index = 0
-            read_buff = input_file.read(self.CHUNK_SIZE)
-            while read_buff != '':
-                file_size += len(read_buff)
-                temp_file = TemporaryFile()
-                temp_file.write(read_buff)
-                temp_file.flush()
-                temp_file.seek(0)
-                self.add_local_chunk(chunk_index, dfs_path, temp_file)
-                temp_file.close()
-                chunk_index += 1
+        if not os.path.isfile(filename):
+            logging.error("no such file: " + filename)
+        else:
+            if dfs_path == None:
+                dfs_path = filename
+            # compression of added file hook should be here
+            input_file = open(filename, 'rb')
+            try:
+                file_size = 0
+                chunk_index = 0
                 read_buff = input_file.read(self.CHUNK_SIZE)
-            self.mdm.publish_meta_data(dfs_path, self.hostname,
-                                       file_size, chunk_index)
-        except:
-            logging.exception("problem while reading " + filename)
-        input_file.close()
+                while read_buff != '':
+                    file_size += len(read_buff)
+                    temp_file = TemporaryFile()
+                    temp_file.write(read_buff)
+                    temp_file.flush()
+                    temp_file.seek(0)
+                    self.add_local_chunk(chunk_index, dfs_path, temp_file)
+                    temp_file.close()
+                    chunk_index += 1
+                    read_buff = input_file.read(self.CHUNK_SIZE)
+                self.mdm.publish_meta_data(dfs_path, self.hostname,
+                                           file_size, chunk_index)
+            except:
+                logging.exception("problem while reading " + filename)
+            input_file.close()
 
     # download a DFS file and dump it to a local file
     def get(self, dfs_path, fs_output_path):
+        if fs_output_path == None:
+            fs_output_path = os.path.basename(dfs_path)
+        else:
+            fs_output_path = os.path.basename(fs_output_path)            
         # shuffle is here to increase pipelining and parallelization
         # of transfers
-        meta_info = self.mdm.get_meta_data(dfs_path)
         remote_chunks = []
-        self.lock.acquire()
-        for c in meta_info.get_chunk_names():
-            if self.local_chunks.get(c) == None:
-                remote_chunks.append(c)
-        self.lock.release()
-        random.shuffle(remote_chunks)
-        remote_chunks_mapping = self.mdm.resolve(remote_chunks)
-        # FBR: TODO download them then publish current host as hosting
-        #      this chunks too
-        #
-        # dump all chunks from local store to fs_output_path and
-        # in the right order please
-        original_dfs_path = dfs_path
-        output_file = open(fs_output_path, 'wb')
-        try:
+        meta_info = self.mdm.get_meta_data(dfs_path)
+        if meta_info == None:
+            logging.error("no such file: " + dfs_path)            
+        else:
             self.lock.acquire()
-            read_only_data_store = TarFile(self.storage_file, 'r')
-            self.lock.release()
-            if dfs_path.startswith('/'):
-                dfs_path = dfs_path[1:]
             for c in meta_info.get_chunk_names():
+                if self.local_chunks.get(c) == None:
+                    remote_chunks.append(c)
+            self.lock.release()
+            random.shuffle(remote_chunks)
+            remote_chunks_mapping = self.mdm.resolve(remote_chunks)
+            # FBR: TODO download them then publish current host as hosting
+            #      this chunks too
+            #
+            # dump all chunks from local store to fs_output_path and
+            # in the right order please
+            original_dfs_path = dfs_path
+            output_file = open(fs_output_path, 'wb')
+            try:
                 self.lock.acquire()
-                untared_file = read_only_data_store.extractfile(c)
+                read_only_data_store = TarFile(self.storage_file, 'r')
                 self.lock.release()
-                if untared_file == None:
-                    logging.fatal("could not extract " + c +
-                                  " from local store")
-                else:
-                    output_file.write(untared_file.read())
-        except:
-            logging.exception("problem while writing " + original_dfs_path +
-                              " to " + fs_output_path)
-        read_only_data_store.close()
-        output_file.close()
+                if dfs_path.startswith('/'):
+                    dfs_path = dfs_path[1:]
+                for c in meta_info.get_chunk_names():
+                    self.lock.acquire()
+                    untared_file = read_only_data_store.extractfile(c)
+                    self.lock.release()
+                    if untared_file == None:
+                        logging.fatal("could not extract " + c +
+                                      " from local store")
+                    else:
+                        output_file.write(untared_file.read())
+            except:
+                logging.exception("problem while writing " + original_dfs_path +
+                                  " to " + fs_output_path)
+            read_only_data_store.close()
+            output_file.close()
 
 # What are the external commands users will call on a DataManager?
 ##################################################################
@@ -180,65 +190,71 @@ class DataManager:
 def usage():
     #0              1    1   2        3            1   2        3
     print """usage:
-    DataManager.py command [parameters]
+    command [parameters]
     ---
-    available commands:
-    ls                      : list all files
-    put filename [dfs_path] : publish a file [under the identifier dfs_path]
-                              (default dfs_path is filename)
-    get dfs_path [filename] : retrieve a file and write it [to filename]
-                              (default filename is dfs_path)
-    {quit|q|exit}           : stop the program
+    ls                          - list files
+    lsc                         - list chunks
+    lsn                         - list nodes
+    put local_file [dfs_name]   - publish a file
+    get dfs_name   [local_file] - retrieve a file
+    q[uit] | e[xit]             - stop this wonderful program
+    h[elp]                      - you are reading its prose
     """
-    sys.exit(0)
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG,
                         format='%(asctime)s %(levelname)s %(message)s')
-    # FBR: - put this in an infinite loop
-    #      - fork the DataManager thread out as a background daemon
-    #      - find a way to communicate with him locally after he was forked
+    # FBR: - fork this as a daemon reading from a named pipe and writing
+    #        to a log file, prevent creation if there is already a
+    #        local store tar file
+    #      - add a thread to manage data trsnafer
     dm = DataManager(commands.getoutput("hostname"), 9090)
-    dm.put("/tmp/big_file")
-    print "all files:"
-    print dm.mdm.ls_files()
-    print "all nodes:"
-    print dm.mdm.ls_nodes()
-    print "all chunks:"
-    print dm.mdm.ls_chunks()
-    print "local chunks:"
-    print dm.ls_local_chunks()
-    print commands.getoutput("echo 3 `date`")
-    dm.get("/tmp/big_file", "/tmp/big_file_from_dfs")
-#     commands      = ["ls", "put", "get", "quit", "q", "exit"]
-#     correct_argcs = [2,3,4]
-#     argc = len(sys.argv)
-#     if argc not in correct_argcs:
-#         usage()
-#     command = sys.argv[1]
-#     param_1 = None
-#     if argc == 3:
-#         param_1 = sys.argv[2]
-#     param_2 = None
-#     if argc == 4:
-#         param_2 = sys.argv[3]
-#     if command == "ls":
-#         if argc != 2:
-#             logging.error("ls takes no argument")
-#             usage()
-#         logging.debug("going to exec: " + command)
-#     elif command == "put":
-#         if argc not in [3,4]:
-#             logging.error("put takes one or two arguments")
-#             usage()
-#         logging.debug("going to exec: " + command)
-#     elif command == "get":
-#         if argc not in [3,4]:
-#             logging.error("get takes one or two arguments")
-#             usage()
-#         logging.debug("going to exec: " + command)
-#     elif command in ["quit", "q", "exit"]:
-#         sys.exit(0)
-#     else:
-#         logging.error("unknown command: " + command)
-#         usage()
+    dm.put("/proc/cpuinfo") # to have a test file in dfs for CLI tests
+    commands = ["ls", "put", "get", "help", "h", "quit", "q", "exit", "e"]
+    try:
+        usage()
+        while True:
+            sys.stdout.write("dfs# ") # what a cool prompt!!! :)
+            read = sys.stdin.readline().strip()
+            if len(read) == 0:
+                usage()
+            else:
+                splitted = read.split()
+                argc = len(splitted)
+                command = splitted[0]
+                param_1 = None
+                if argc in [2, 3]:
+                    param_1 = splitted[1]
+                param_2 = None
+                if argc == 3:
+                    param_2 = splitted[2]
+                if command in ["help", "h"]:
+                    usage()
+                elif command == "ls":
+                    print "files:"
+                    print dm.mdm.ls_files()
+                elif command == "lsc":
+                    print "chunks:"
+                    print dm.mdm.ls_chunks()
+                elif command == "lsn":
+                    print "nodes:"
+                    print dm.mdm.ls_nodes()
+                elif command == "put":
+                    if argc not in [2, 3]:
+                        logging.error("need one or two arguments")
+                        usage()
+                    else:
+                        dm.put(param_1, param_2)
+                elif command == "get":
+                    if argc not in [2, 3]:
+                        logging.error("need one or two arguments")
+                        usage()
+                    else:
+                        dm.get(param_1, param_2)
+                elif command in ["quit", "q", "exit", "e"]:
+                    sys.exit(0)
+                else:
+                    logging.error("unknown command: " + command)
+                    usage()
+    except KeyboardInterrupt:
+        pass
