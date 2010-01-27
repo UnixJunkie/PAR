@@ -22,13 +22,17 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ---
 """
 
-import commands, logging, os, random, socket, sys, stat, thread
+import commands, logging, os, cPickle, random, socket, sys, stat, thread
 # import Pyro.core, Pyro.naming
 
 from tarfile         import TarFile
 from tempfile        import TemporaryFile
 from MetaDataManager import MetaDataManager
 # from Pyro.errors     import NamingError
+
+class PickableFile:
+    def __init__(self, fileobject):
+        self.data = fileobject.read()
 
 class DataManager:
 
@@ -201,6 +205,17 @@ if __name__ == '__main__':
     # we need to make file chunks pickable
     logging.basicConfig(level  = logging.DEBUG,
                         format = '%(asctime)s %(levelname)s %(message)s')
+#     # pickable file save test
+#     p = PickableFile(open("/proc/cpuinfo",'r'))
+#     disk_backup = open("/tmp/pickled3", 'wb')
+#     p = cPickle.dump(p, disk_backup)
+#     disk_backup.close()
+#     # pickable file restore test
+#     disk_restore = open("/tmp/pickled3", 'rb')
+#     p = cPickle.load(disk_restore)
+#     disk_restore.close()
+#     sys.stdout.write(p.data)
+
     dm = DataManager(commands.getoutput("hostname"), 9090)
     # have a test file in dfs for CLI tests    
     dm.put("/proc/cpuinfo","cpuinfo")
