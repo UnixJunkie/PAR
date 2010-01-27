@@ -179,12 +179,6 @@ class DataManager:
             read_only_data_store.close()
             output_file.close()
 
-# What are the external commands users will call on a DataManager?
-##################################################################
-# * the API must closely reflect these commands to facilitate
-#   implementation
-# * the DataManager will contact the MetadataManager to get info it
-#   does not know
 def usage():
     #0              1    1   2        3            1   2        3
     print """usage:
@@ -201,19 +195,19 @@ def usage():
     """
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.DEBUG,
-                        format='%(asctime)s %(levelname)s %(message)s')
-    # FBR: - fork this as a daemon reading from a named pipe and writing
-    #        to a log file, prevent creation if there is already a
-    #        local store tar file
-    #      - add a thread to manage data transfer
+    # try to connect to the local Pyro object DataManager
+    # if there is not one, then create and fork one
+    # then discuss with this object
+    # we need to make file chunks pickable
+    logging.basicConfig(level  = logging.DEBUG,
+                        format = '%(asctime)s %(levelname)s %(message)s')
     dm = DataManager(commands.getoutput("hostname"), 9090)
-    dm.put("/proc/cpuinfo","cpuinfo") # to have a test file in dfs for CLI tests
-    commands = ["ls", "put", "get", "help", "h", "quit", "q", "exit", "e"]
+    # have a test file in dfs for CLI tests    
+    dm.put("/proc/cpuinfo","cpuinfo")
     try:
         usage()
         while True:
-            sys.stdout.write("dfs# ") # what a cool prompt!!! :)
+            sys.stdout.write("dfs# ") # a cool prompt
             read = sys.stdin.readline().strip()
             if len(read) == 0:
                 usage()
