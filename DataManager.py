@@ -27,7 +27,6 @@ import commands, logging, os, random, socket, sys, stat, thread
 
 from tarfile         import TarFile
 from tempfile        import TemporaryFile
-from Chunk           import Chunk
 from MetaDataManager import MetaDataManager
 # from Pyro.errors     import NamingError
 
