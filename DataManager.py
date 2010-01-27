@@ -206,9 +206,9 @@ if __name__ == '__main__':
     # FBR: - fork this as a daemon reading from a named pipe and writing
     #        to a log file, prevent creation if there is already a
     #        local store tar file
-    #      - add a thread to manage data trsnafer
+    #      - add a thread to manage data transfer
     dm = DataManager(commands.getoutput("hostname"), 9090)
-    dm.put("/proc/cpuinfo") # to have a test file in dfs for CLI tests
+    dm.put("/proc/cpuinfo","cpuinfo") # to have a test file in dfs for CLI tests
     commands = ["ls", "put", "get", "help", "h", "quit", "q", "exit", "e"]
     try:
         usage()
