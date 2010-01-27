@@ -185,7 +185,7 @@ my_parser.add_option("-s", "--server",
 my_parser.add_option("-v", "--verbose",
                      action="store_true",
                      dest = "is_verbose", default = False,
-                     help = "enables progress bar")
+                     help = "enable progress bar")
 my_parser.add_option("-w", "--workers",
                      dest = "nb_local_workers", default = None,
                      help = ("number of local worker threads, "
