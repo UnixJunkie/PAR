@@ -40,7 +40,7 @@ class MetaDataManager(Pyro.core.ObjBase):
         ################################################
         self.files  = {} # MetaData objects indexed by their dfs_path
         self.chunks = {} # mapping chunk_ID -> source nodes list
-        self.nodes  = [] # chunk sources
+        self.nodes  = {} # chunk sources
 
     def ls_files(self):
         res = []
@@ -60,7 +60,7 @@ class MetaDataManager(Pyro.core.ObjBase):
 
     def ls_nodes(self):
         self.chunks_lock.acquire()
-        res = list(self.nodes)
+        res = self.nodes.keys()
         self.chunks_lock.release()
         return res
 
@@ -88,7 +88,8 @@ class MetaDataManager(Pyro.core.ObjBase):
             if dfs_path.startswith('/'):
                 dfs_path = dfs_path[1:]
             self.chunks_lock.acquire()
-            self.nodes.append(publication_host)
+            if self.nodes.get(publication_host) == None:
+                self.nodes[publication_host] = True
             for c in to_publish.get_chunk_names():
                 self.chunks[c] = [publication_host]
             self.chunks_lock.release()
