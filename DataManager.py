@@ -136,9 +136,7 @@ class DataManager:
     # download a DFS file and dump it to a local file
     def get(self, dfs_path, fs_output_path):
         if fs_output_path == None:
-            fs_output_path = os.path.basename(dfs_path)
-        else:
-            fs_output_path = os.path.basename(fs_output_path)            
+            fs_output_path = dfs_path
         # shuffle is here to increase pipelining and parallelization
         # of transfers
         remote_chunks = []
@@ -197,8 +195,9 @@ def usage():
     lsn                         - list nodes
     put local_file [dfs_name]   - publish a file
     get dfs_name   [local_file] - retrieve a file
+    cat dfs_name                - output file to screen
     q[uit] | e[xit]             - stop this wonderful program
-    h[elp]                      - you are reading its prose
+    h[elp]                      - the present prose
     """
 
 if __name__ == '__main__':
@@ -241,16 +240,22 @@ if __name__ == '__main__':
                     print dm.mdm.ls_nodes()
                 elif command == "put":
                     if argc not in [2, 3]:
-                        logging.error("need one or two arguments")
+                        logging.error("need one or two params")
                         usage()
                     else:
                         dm.put(param_1, param_2)
                 elif command == "get":
                     if argc not in [2, 3]:
-                        logging.error("need one or two arguments")
+                        logging.error("need one or two params")
                         usage()
                     else:
                         dm.get(param_1, param_2)
+                elif command == "cat":
+                    if argc not in [2]:
+                        logging.error("need one param")
+                        usage()
+                    else:
+                        dm.get(param_1, "/dev/stdout")
                 elif command in ["quit", "q", "exit", "e"]:
                     sys.exit(0)
                 else:
