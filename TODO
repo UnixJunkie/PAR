@@ -2,7 +2,6 @@ MUST DO
 -------
 * add data management: single write and multiple read style virtual file-system
   cf Python modules tarfile and gzip
-* create other directories and clean the git root hierarchy of this project
 * use the same logger than DataManager.py in parallel.py instead of print
   use a shorter log format for time also
 * main became a pretty big function, cut it into sub-functions so we
@@ -51,6 +50,8 @@ NICE TO HAVE
 * If we have many workers and only one server, if workers crush jobs very
   fast, they should request several jobs at a time and send several results at
   a time (because latency is not 0 for distributed objects...)
+  A russian doll client would act like this (ask for many jobs at a
+  time for the cluster he is hiding).
 
 JUST DREAMING
 -------------
