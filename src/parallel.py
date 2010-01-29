@@ -48,16 +48,14 @@ class Master(Pyro.core.ObjBase):
         self.jobs_queue     = commands_q
         self.results_queue  = results_q
 
-    def get_work(self):
-        res = ""
+    def get_work(self, previous_result = None):
+        if previous_result != None:
+            self.results_queue.put(previous_result)
         try:
             res = self.jobs_queue.get(True, 1)
         except Empty:
-            pass
+            res = ""
         return res
-
-    def put_result(self, cmd_and_res):
-        self.results_queue.put(cmd_and_res)
 
     def add_job(self, cmd):
         self.jobs_queue.put(cmd)
@@ -96,8 +94,7 @@ def worker_wrapper(master, lock):
             cmd_out.close()
             # FBR: compression hook should be here
             #      this could be pretty big stuff to send
-            master.put_result(in_out_err)
-            work = master.get_work()
+            work = master.get_work(in_out_err)
     except ConnectionClosedError: # server closed because no more jobs to send
         pass
     #print "no more jobs for me, leaving"
