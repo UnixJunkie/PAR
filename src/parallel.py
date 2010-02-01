@@ -107,48 +107,6 @@ def worker_wrapper(master, lock):
     #print "no more jobs for me, leaving"
     lock.release()
 
-class NameServerThread(Thread):
-
-   def __init__ (self, starter):
-      Thread.__init__(self, name = "NameServerThread")
-      self.starter = starter
-      self.setDaemon(True) # Python will exit and clean correctly once
-                           # only daemon threads are still running
-
-   # Pyro nameserver thread setup and start
-   def run(self):
-       # Options and behavior we want:
-       # -x: no broadcast listener
-       # -m: several nameservers on same network OK
-       # -r: don't try to find any other nameserver
-       # cf. Pyro-3.10/Pyro/naming.py if you need to change/understand
-       # code below
-       host = None
-       port = None
-       if port:
-           port = int(port)
-       bcport = 0
-       bcaddr = None
-       nobroadcast = True
-       role = Pyro.constants.NSROLE_SINGLE
-       roleArgs = None
-       verbose = False
-       keep = False
-       allowmultiple = True
-       dontlookupother = True
-       persistent = 0
-       dbdir = None
-       Guards = (None,None)
-       print '*** Starting Pyro Name Server ***'
-       try:
-           self.starter.start(host, port, bcport, keep, persistent,
-                              dbdir, Guards, allowmultiple, dontlookupother,
-                              verbose, role = (role, roleArgs),
-                              bcaddr = bcaddr, nobroadcast = nobroadcast)
-       except (Pyro.errors.NamingError, Pyro.errors.DaemonError),x:
-           print "error while starting Pyro nameserver:" + x
-           sys.exit(1)
-
 pyro_daemon_loop_cond = True
 
 # a pair parameter is required by start_new_thread,
@@ -201,7 +159,7 @@ def usage():
     my_parser.print_help()
     sys.exit(0)
 
-default_pyro_ns_port = 9090
+default_pyro_port = 7766
 
 if __name__ == '__main__':
     try:
@@ -251,46 +209,21 @@ if __name__ == '__main__':
         nb_jobs        = 0
         locks          = []
         if is_server:
-            starter    = Pyro.naming.NameServerStarter()
-            ns_wrapper = NameServerThread(starter)
-            ns_wrapper.start()
-            while not starter.waitUntilStarted():
-                time.sleep(0.1)
             Pyro.core.initServer()
             daemon = Pyro.core.Daemon()
-            print 'Locating Name Server...'
-            locator = Pyro.naming.NameServerLocator()
-            nameserver = locator.getNS(socket.getfqdn(),
-                                       port = default_pyro_ns_port)
-            print 'Located'
-            daemon.useNameServer(nameserver)
-            # unpublish previous objects
-            for u in ['master', 'meta_data_manager']:
-                try:
-                    nameserver.unregister(u)
-                except NamingError:
-                    pass
             # publish objects
-            daemon.connect(master, 'master')
+            uri = daemon.connect(master, 'master')
+            #print uri # debug
             if has_data_server:
                 meta_data_manager = MetaDataManager()
                 daemon.connect(meta_data_manager, 'meta_data_manager')
             thread.start_new_thread(master_wrapper, (daemon, None))
         if connect_to_server:
-            print 'Locating Name Server...'
-            locator = Pyro.naming.NameServerLocator()
-            ns = locator.getNS(host = remote_server_name,
-                               port = default_pyro_ns_port)
-            print 'Located'
-            try:
-                print 'Locating master...'
-                URI = ns.resolve('master')
-                print 'Located'
-            except NamingError,x:
-                print "Couldn't find object, nameserver says:",x
-                raise SystemExit
             # replace master by its proxy for the remote object
-            master = Pyro.core.getProxyForURI(URI)
+            uri = ("PYROLOC://" + remote_server_name + ":" +
+                   str(default_pyro_port) + "/master")
+            #print uri # debug
+            master = Pyro.core.getProxyForURI(uri)
         # start workers
         for i in range(nb_threads):
             l = thread.allocate_lock()
