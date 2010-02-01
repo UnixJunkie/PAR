@@ -1,7 +1,6 @@
 MUST DO
 -------
 * remove nameserver
-* start workers before reading jobs
 * start processing results before workers are finished
 * add data management: single write and multiple read style virtual file-system
   cf Python modules tarfile and gzip
