@@ -61,6 +61,7 @@ class Master(Pyro.core.ObjBase):
             res = self.jobs_queue.get(True)
             if res == "END":
                 self.no_more_jobs = True
+                res = ""
         self.lock.release()
         return res
 
