@@ -276,12 +276,6 @@ if __name__ == '__main__':
                 meta_data_manager = MetaDataManager()
                 daemon.connect(meta_data_manager, 'meta_data_manager')
             thread.start_new_thread(master_wrapper, (daemon, None))
-        if read_from_file:
-            # read jobs from local file
-            for cmd in commands_file:
-                master.add_job(cmd)
-                nb_jobs += 1
-            master.add_job("END")
         if connect_to_server:
             print 'Locating Name Server...'
             locator = Pyro.naming.NameServerLocator()
@@ -297,11 +291,19 @@ if __name__ == '__main__':
                 raise SystemExit
             # replace master by its proxy for the remote object
             master = Pyro.core.getProxyForURI(URI)
+        # start workers
         for i in range(nb_threads):
             l = thread.allocate_lock()
             l.acquire()
             locks.append(l)
             thread.start_new_thread(worker_wrapper, (master, l))
+        # feed workers
+        if read_from_file:
+            # read jobs from local file
+            for cmd in commands_file:
+                master.add_job(cmd)
+                nb_jobs += 1
+            master.add_job("END")
         if read_from_file:
             progress_bar = ProgressBar(0, nb_jobs)
             # output everything
