@@ -47,14 +47,21 @@ class Master(Pyro.core.ObjBase):
         Pyro.core.ObjBase.__init__(self)
         self.jobs_queue     = commands_q
         self.results_queue  = results_q
+        self.lock           = thread.allocate_lock()
+        self.no_more_jobs   = False
 
     def get_work(self, previous_result = None):
         if previous_result != None:
             self.results_queue.put(previous_result)
-        try:
-            res = self.jobs_queue.get(True, 1)
-        except Empty:
+        res = None
+        self.lock.acquire()
+        if self.no_more_jobs:
             res = ""
+        else:
+            res = self.jobs_queue.get(True)
+            if res == "END":
+                self.no_more_jobs = True
+        self.lock.release()
         return res
 
     def add_job(self, cmd):
@@ -274,6 +281,7 @@ if __name__ == '__main__':
             for cmd in commands_file:
                 master.add_job(cmd)
                 nb_jobs += 1
+            master.add_job("END")
         if connect_to_server:
             print 'Locating Name Server...'
             locator = Pyro.naming.NameServerLocator()
