@@ -1,7 +1,7 @@
 MUST DO
 -------
-* remove nameserver
 * start processing results before workers are finished
+  do we really need locks in worker threads?
 * add data management: single write and multiple read style virtual file-system
   cf Python modules tarfile and gzip
 * use the same logger than DataManager.py in parallel.py instead of print
