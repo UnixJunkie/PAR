@@ -138,7 +138,7 @@ class DataManager:
             input_file.close()
 
     # download a DFS file and dump it to a local file
-    def get(self, dfs_path, fs_output_path):
+    def get(self, dfs_path, fs_output_path, append_mode = False):
         if fs_output_path == None:
             fs_output_path = dfs_path
         # shuffle is here to increase pipelining and parallelization
@@ -161,7 +161,10 @@ class DataManager:
             # dump all chunks from local store to fs_output_path and
             # in the right order please
             original_dfs_path = dfs_path
-            output_file = open(fs_output_path, 'wb')
+            if append_mode:
+                output_file = open(fs_output_path, 'ab')
+            else:
+                output_file = open(fs_output_path, 'wb')
             try:
                 self.lock.acquire()
                 read_only_data_store = TarFile(self.storage_file, 'r')
@@ -194,6 +197,7 @@ def usage():
     put local_file [dfs_name]   - publish a file
     get dfs_name   [local_file] - retrieve a file
     cat dfs_name                - output file to screen
+    app dfs_name   local_file   - append file to a local one
     q[uit] | e[xit]             - stop this wonderful program
     h[elp]                      - the present prose
     """
@@ -259,6 +263,12 @@ if __name__ == '__main__':
                         usage()
                     else:
                         dm.get(param_1, param_2)
+                elif command == "app":
+                    if argc not in [3]:
+                        logging.error("need two params")
+                        usage()
+                    else:
+                        dm.get(param_1, param_2, True)
                 elif command == "cat":
                     if argc not in [2]:
                         logging.error("need one param")
