@@ -22,11 +22,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ---
 """
 
-import commands, logging, os, cPickle, random, socket, sys, stat, thread
+import commands, logging, os, cPickle, random
+import socket, sys, stat, thread, time
+
 import Pyro.core, Pyro.naming
 
 from tarfile         import TarFile
 from tempfile        import TemporaryFile
+
 from MetaDataManager import MetaDataManager
 from Pyro.errors     import NamingError
 
@@ -219,9 +222,27 @@ if __name__ == '__main__':
     # we need to make file chunks pickable
     logging.basicConfig(level  = logging.DEBUG,
                         format = '%(asctime)s %(levelname)s %(message)s')
-    dm = DataManager(commands.getoutput("hostname"), 9090)
-    # have a test file in dfs for CLI tests
-    dm.put("/proc/cpuinfo","cpuinfo")
+    dataManager_URI = "PYROLOC://localhost:7766/DataManager"
+    dm = Pyro.core.getProxyForURI(dataManager_URI)
+    try:
+        ignore = dm.ls()
+        logging.debug("DataManager OK")
+    except Pyro.errors.ProtocolError:
+        logging.debug("DataManager KO, launching one")
+        # no local DataManager running, create one and fork it away
+        pid = os.fork()
+        if pid == 0: # child process
+            Pyro.core.initServer()
+            daemon = Pyro.core.Daemon()
+            dm = DataManager("FBR:remote Pyro server", "FBR:remote port")
+            uri = daemon.connect(dm, 'DataManager') # publish object
+            daemon.requestLoop() # infinite loop
+    print "toto"
+    time.sleep(0.1) # wait for him to enter his infinite loop
+    # FBR: there is some Pyro code to actively loop and wait for him, this
+    #      would be safer
+    print "titi"
+    dm.put("/proc/cpuinfo","cpuinfo") # have a test file in dfs for CLI tests
     try:
         usage()
         while True:
