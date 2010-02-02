@@ -23,20 +23,21 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 import commands, logging, os, cPickle, random, socket, sys, stat, thread
-# import Pyro.core, Pyro.naming
+import Pyro.core, Pyro.naming
 
 from tarfile         import TarFile
 from tempfile        import TemporaryFile
 from MetaDataManager import MetaDataManager
-# from Pyro.errors     import NamingError
+from Pyro.errors     import NamingError
 
 class PickableFile:
     def __init__(self, fileobject):
         self.data = fileobject.read()
 
-class DataManager:
+class DataManager(Pyro.core.ObjBase):
 
     def __init__(self, remote_server, remote_port):
+        Pyro.core.ObjBase.__init__(self)
         # when compressing, we must compress before cuting into chunks so we
         # will have fewer chunks to transfer instead of having smaller ones
         # (better for network latency I think)
@@ -146,7 +147,7 @@ class DataManager:
         remote_chunks = []
         meta_info = self.mdm.get_meta_data(dfs_path)
         if meta_info == None:
-            logging.error("no such file: " + dfs_path)            
+            logging.error("no such file: " + dfs_path)
         else:
             self.lock.acquire()
             for c in meta_info.get_chunk_names():
@@ -186,6 +187,15 @@ class DataManager:
             read_only_data_store.close()
             output_file.close()
 
+    def ls_files(self):
+        return self.mdm.ls_files()
+
+    def ls_chunks(self):
+        return self.mdm.ls_chunks()
+
+    def ls_nodes(self):
+        return self.mdm.ls_nodes()
+
 def usage():
     #0              1    1   2        3            1   2        3
     print """usage:
@@ -221,7 +231,7 @@ if __name__ == '__main__':
 #     sys.stdout.write(p.data)
 
     dm = DataManager(commands.getoutput("hostname"), 9090)
-    # have a test file in dfs for CLI tests    
+    # have a test file in dfs for CLI tests
     dm.put("/proc/cpuinfo","cpuinfo")
     try:
         usage()
@@ -244,13 +254,13 @@ if __name__ == '__main__':
                     usage()
                 elif command == "ls":
                     print "files:"
-                    print dm.mdm.ls_files()
+                    print dm.ls_files()
                 elif command == "lsc":
                     print "chunks:"
-                    print dm.mdm.ls_chunks()
+                    print dm.ls_chunks()
                 elif command == "lsn":
                     print "nodes:"
-                    print dm.mdm.ls_nodes()
+                    print dm.ls_nodes()
                 elif command == "put":
                     if argc not in [2, 3]:
                         logging.error("need one or two params")
