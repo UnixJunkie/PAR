@@ -34,8 +34,7 @@ from MetaDataManager import MetaDataManager
 from Pyro.errors     import NamingError
 
 # FBR: * logs should go to a local file?
-#          Sure, when not in interactive mode
-#      * connect to a distant mdm or have a local one?
+#        Sure but only when not in interactive mode
 
 pyro_default_port      = 7766
 data_manager_port      = 7767
@@ -79,16 +78,17 @@ class DataManager(Pyro.core.ObjBase):
         except:
             logging.exception("can't create or write to: " + self.storage_file)
             sys.exit(0)
-        self.mdm = MetaDataManager()
+        self.mdm = None
+        self.use_local_mdm()
 
     # change MetaDataManager
     def use_remote_mdm(self, host, port = meta_data_manager_port):
         mdm_URI = "PYROLOC://" + host + ":" + str(port) + "/meta_data_manager"
         self.mdm = Pyro.core.getProxyForURI(mdm_URI)
 
-    # change MetaDataManager
+    # change MetaDataManager (default)
     def use_local_mdm(self):
-        self.mdm = MetaDataManager()
+        self.use_remote_mdm("localhost", meta_data_manager_port)
 
     def get_chunk_name(self, chunk_number, dfs_path):
         if dfs_path.startswith('/'):
@@ -238,8 +238,30 @@ class DataManager(Pyro.core.ObjBase):
     def stop(self):
         self.pyro_daemon_loop_cond = False
 
+def launch_local_meta_data_manager():
+    Pyro.core.initServer()
+    daemon = Pyro.core.Daemon(port = meta_data_manager_port)
+    mdm = MetaDataManager()
+    uri = daemon.connect(mdm, 'meta_data_manager') # publish object
+    daemon.requestLoop(condition=lambda: mdm.pyro_daemon_loop_cond)
+    # the following is executed only after mdm.stop() was called
+    daemon.disconnect(mdm)
+    daemon.shutdown()
+    sys.exit(0)
+
+def launch_local_data_manager():
+    Pyro.core.initServer()
+    daemon = Pyro.core.Daemon(port = data_manager_port)
+    dm = DataManager()
+    dm.put("/proc/cpuinfo","cpuinfo") # a test file for tests
+    uri = daemon.connect(dm, 'data_manager') # publish object
+    daemon.requestLoop(condition=lambda: dm.pyro_daemon_loop_cond)
+    # the following is executed only after dm.stop() was called
+    daemon.disconnect(dm)
+    daemon.shutdown()
+    sys.exit(0)
+
 def usage():
-    #0              1    1   2        3            1   2        3
     print """usage:
     command [parameters]
     ---
@@ -247,8 +269,9 @@ def usage():
     cat dfs_name                - output file to screen
     get dfs_name   [local_file] - retrieve a file
     h[elp]                      - the present prose
-    k[ill]                      - stop DataManager deamon then exit
-    lmdm                        - use a local MetaDataManager
+    k[ill]                      - stop local data deamons then exit
+                                  (DataManager and MetaDataManager)
+    lmdm                        - use the local MetaDataManager (default)
     ls                          - list files
     lsac                        - list all chunks
     lslc                        - list local chunks only
@@ -261,28 +284,36 @@ def usage():
 if __name__ == '__main__':
     logging.basicConfig(level  = logging.DEBUG,
                         format = '%(asctime)s %(levelname)s %(message)s')
-    dataManager_URI = ("PYROLOC://localhost:" + str(data_manager_port) +
-                       "/data_manager")
-    dm = Pyro.core.getProxyForURI(dataManager_URI)
-    dm_already_here = False
+    dm_URI  = ("PYROLOC://localhost:" + str(data_manager_port) +
+               "/data_manager")
+    mdm_URI = ("PYROLOC://localhost:" + str(meta_data_manager_port) +
+               "/meta_data_manager")
+    dm  = Pyro.core.getProxyForURI(dm_URI)
+    mdm = Pyro.core.getProxyForURI(mdm_URI)
+    dm_already_here  = False
+    mdm_already_here = False
+    try:
+        ignore = mdm.started()
+        mdm_already_here = True
+    except Pyro.errors.ProtocolError:
+        # no local MetaDataManager running
+        print("starting MetaDataManager daemon...")
+        pid = os.fork()
+        if pid == 0: # child process
+            launch_local_meta_data_manager()
+    if not mdm_already_here:
+        time.sleep(0.1) # wait for him to enter his infinite loop
+    else:
+        print("MetaDataManager daemon OK")
     try:
         ignore = dm.started()
         dm_already_here = True
     except Pyro.errors.ProtocolError:
+        # no local DataManager running
         print("starting DataManager daemon...")
-        # no local DataManager running, create one and fork it away
         pid = os.fork()
         if pid == 0: # child process
-            Pyro.core.initServer()
-            daemon = Pyro.core.Daemon(port = data_manager_port)
-            dm = DataManager()
-            # have a test file in dfs for CLI tests
-            dm.put("/proc/cpuinfo","cpuinfo")
-            uri = daemon.connect(dm, 'data_manager') # publish object
-            daemon.requestLoop(condition=lambda: dm.pyro_daemon_loop_cond)
-            daemon.disconnect(dm) # when it ends because stop
-            daemon.shutdown()
-            sys.exit(0)
+            launch_local_data_manager()
     if not dm_already_here:
         time.sleep(0.1) # wait for him to enter his infinite loop
     else:
@@ -333,6 +364,7 @@ if __name__ == '__main__':
                     print dm.ls_nodes()
                 elif command in ["k","kill"]:
                     dm.stop()
+                    mdm.stop()
                     sys.exit(0)
                 elif command == "put":
                     if argc not in [2, 3]:
