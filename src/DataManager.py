@@ -137,8 +137,8 @@ class DataManager(Pyro.core.ObjBase):
                     res = (True, chunk)
         return res
 
-    # notify transfer finished so that other can download chunks from the
-    # current DataManager
+    # notify transfer finished so that other can download chunks from this
+    # DataManager
     def got_chunk(self):
         self.chunk_server_lock.release()
 
@@ -196,7 +196,7 @@ class DataManager(Pyro.core.ObjBase):
             self.data_store_lock.release()
             random.shuffle(remote_chunks)
             # FBR: TODO download them then publish current host as hosting
-            #      this chunks too
+            #      these chunks too
             #
             # dump all chunks from local store to fs_output_path and
             # in the right order please
