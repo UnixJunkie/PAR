@@ -128,7 +128,7 @@ class DataManager(Pyro.core.ObjBase):
                 untared_file = read_only_data_store.extractfile(chunk_name)
                 self.data_store_lock.release()
                 if untared_file == None:
-                    logging.fatal("could not extract " + c +
+                    logging.fatal("could not extract " + chunk_name +
                                   " from local store despite it was listed" +
                                   " in self.local_chunks")
                     res = (True, None)
