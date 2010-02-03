@@ -40,7 +40,7 @@ class PickableFile:
 class DataManager(Pyro.core.ObjBase):
 
     # FBR: need to serve file chunks
-    # 
+    #
     #      if we are serving one, we should abort other requests until this one
     #      is finished, this means this Pyro server should be multithread
     #      if the requested chunk is not available locally, we should return
@@ -54,24 +54,25 @@ class DataManager(Pyro.core.ObjBase):
         ##################################
         # SYNCHRONIZE ACCES TO DATASTORE #
         ##################################
-        self.lock           = thread.allocate_lock()
-        self.CHUNK_SIZE     = 1024*1024
-        self.data_store     = None
-        self.hostname       = socket.getfqdn()
-        self.storage_file   = ("/tmp/dfs_" + os.getlogin() +
-                               "_at_" + self.hostname)
-        self.local_chunks   = {}
+        self.data_store_lock       = thread.allocate_lock()
+        self.chunk_server_lock     = thread.allocate_lock()
+        self.CHUNK_SIZE            = 1024*1024
+        self.data_store            = None
+        self.hostname              = socket.getfqdn()
+        self.storage_file          = ("/tmp/dfs_" + os.getlogin() +
+                                      "_at_" + self.hostname)
+        self.local_chunks          = {}
         self.pyro_daemon_loop_cond = True
         try:
             # The TarFile interface forces us to use a temporary file.
             # Maybe it makes some unnecessary data copy, however having
             # our chunks kept in the standard tar format is too cool
             # to be changed
-            self.lock.acquire()
+            self.data_store_lock.acquire()
             self.data_store = TarFile(self.storage_file, 'w')
             os.chmod(self.data_store.fileobj.name,
                      stat.S_IRUSR | stat.S_IWUSR) # <=> chmod 600 ...
-            self.lock.release()
+            self.data_store_lock.release()
             temp_file = TemporaryFile()
             temp_file.write("DFS_STORAGE_v00\n")
             temp_file.flush()
@@ -105,19 +106,49 @@ class DataManager(Pyro.core.ObjBase):
 
     def add_local_chunk(self, chunk_number, dfs_path, tmp_file):
         chunk_name = self.get_chunk_name(chunk_number, dfs_path)
-        self.lock.acquire()
+        self.data_store_lock.acquire()
         tar_info = self.data_store.gettarinfo (arcname = chunk_name,
                                                fileobj = tmp_file)
         self.data_store.addfile(tar_info, tmp_file)
         self.data_store.fileobj.flush()
         self.local_chunks[chunk_name] = True
-        self.lock.release()
+        self.data_store_lock.release()
+
+    # return (False, None) if busy
+    #        (True,  None) if not busy but chunk was not found
+    #                      WARNING: client must update meta data info then?
+    #        (True,  c)    if not busy and chunk found
+    # IMPORTANT: call got_chunk just after on client side
+    def get_chunk(self, chunk_name):
+        res = (False, None)
+        ready = self.chunk_server_lock.acquire(False)
+        if ready:
+            if self.local_chunks.get(chunk_name) == None:
+                res = (True, None)
+            else:
+                self.data_store_lock.acquire()
+                read_only_data_store = TarFile(self.storage_file, 'r')
+                untared_file = read_only_data_store.extractfile(chunk_name)
+                self.data_store_lock.release()
+                if untared_file == None:
+                    logging.fatal("could not extract " + c +
+                                  " from local store despite it was listed" +
+                                  " in self.local_chunks")
+                    res = (True, None)
+                else:
+                    chunk = untared_file.read()
+                    res = (True, chunk)
+        return res
+
+    # IMPORTANT: must be called just after get_chunk
+    def got_chunk(self):
+        self.chunk_server_lock.release()
 
     def ls_local_chunks(self):
         res = []
-        self.lock.acquire()
+        self.data_store_lock.acquire()
         res = self.local_chunks.keys()
-        self.lock.release()
+        self.data_store_lock.release()
         return res
 
     # publish a local file into the DFS
@@ -160,32 +191,29 @@ class DataManager(Pyro.core.ObjBase):
         if meta_info == None:
             logging.error("no such file: " + dfs_path)
         else:
-            self.lock.acquire()
+            self.data_store_lock.acquire()
             for c in meta_info.get_chunk_names():
                 if self.local_chunks.get(c) == None:
                     remote_chunks.append(c)
-            self.lock.release()
+            self.data_store_lock.release()
             random.shuffle(remote_chunks)
             # FBR: TODO download them then publish current host as hosting
             #      this chunks too
             #
             # dump all chunks from local store to fs_output_path and
             # in the right order please
-            original_dfs_path = dfs_path
             if append_mode:
                 output_file = open(fs_output_path, 'ab')
             else:
                 output_file = open(fs_output_path, 'wb')
             try:
-                self.lock.acquire()
+                self.data_store_lock.acquire()
                 read_only_data_store = TarFile(self.storage_file, 'r')
-                self.lock.release()
-                if dfs_path.startswith('/'):
-                    dfs_path = dfs_path[1:]
+                self.data_store_lock.release()
                 for c in meta_info.get_chunk_names():
-                    self.lock.acquire()
+                    self.data_store_lock.acquire()
                     untared_file = read_only_data_store.extractfile(c)
-                    self.lock.release()
+                    self.data_store_lock.release()
                     if untared_file == None:
                         logging.fatal("could not extract " + c +
                                       " from local store")
@@ -193,8 +221,7 @@ class DataManager(Pyro.core.ObjBase):
                         output_file.write(untared_file.read())
             except:
                 logging.exception("problem while writing " +
-                                  original_dfs_path +
-                                  " to " + fs_output_path)
+                                  dfs_path + " to " + fs_output_path)
             read_only_data_store.close()
             output_file.close()
 
