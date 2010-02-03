@@ -40,8 +40,6 @@ from ProgressBar import ProgressBar
 from Pyro.errors import PyroError, NamingError, ConnectionClosedError
 from StringIO    import StringIO
 
-from MetaDataManager import MetaDataManager
-
 class Master(Pyro.core.ObjBase):
     def __init__(self, commands_q, results_q):
         Pyro.core.ObjBase.__init__(self)
@@ -72,6 +70,7 @@ def get_nb_procs():
     res = None
     try:
         # Linux
+        # FBR: this can be obtained without a command, do it!
         res = int(commands.getoutput("egrep -c '^processor' /proc/cpuinfo"))
     except:
         try:
@@ -125,11 +124,6 @@ my_parser.add_option("-c", "--client",
                      dest = "server_name", default = None,
                      help = ("read commands from a server instead of a file "
                              "(incompatible with -i)"))
-my_parser.add_option("-d", "--dfs",
-                     action="store_true",
-                     dest = "data_server", default = False,
-                     help = ("EXPERIMENTAL: allow distributed "
-                             "filesystem capability"))
 my_parser.add_option("-i", "--input",
                      dest = "commands_file", default = None,
                      help = ("/dev/stdin for example "
@@ -180,8 +174,6 @@ if __name__ == '__main__':
         has_post_proc_option  = post_proc_option != None
         is_server             = options.is_server
         daemon                = None
-        has_data_server       = options.data_server
-        meta_data_manager     = None
         if output_to_file:
             output_file = open(output_file_option, 'a')
         if read_from_file:  # mandatory option
@@ -215,9 +207,6 @@ if __name__ == '__main__':
             # publish objects
             uri = daemon.connect(master, 'master')
             #print uri # debug
-            if has_data_server:
-                meta_data_manager = MetaDataManager()
-                daemon.connect(meta_data_manager, 'meta_data_manager')
             thread.start_new_thread(master_wrapper, (daemon, None))
         if connect_to_server:
             # replace master by its proxy for the remote object
@@ -273,8 +262,6 @@ if __name__ == '__main__':
             l.acquire()
         # stop pyro server-side stuff
         if is_server:
-            if has_data_server:
-                daemon.disconnect(meta_data_manager)
             daemon.disconnect(master)
             daemon.shutdown()
     except SystemExit:
