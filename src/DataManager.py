@@ -98,6 +98,13 @@ class DataManager(Pyro.core.ObjBase):
     def chunk_name_to_index(self, chunk_name):
         return int((chunk_name.split('/'))[0])
 
+    def chunk_name_to_dfs_path(self, chunk_name):
+        return "/".join(chunk_name.split('/')[1:])
+
+    def decode_chunk_name(self, chunk_name):
+        s = chunk_name.split('/')
+        return (int(s[0]), "/".join(chunk_name.split('/')[1:]))
+
     def add_local_chunk(self, chunk_number, dfs_path, tmp_file):
         chunk_name = self.get_chunk_name(chunk_number, dfs_path)
         self.data_store_lock.acquire()
@@ -178,6 +185,48 @@ class DataManager(Pyro.core.ObjBase):
                 logging.exception("problem while reading " + filename)
             input_file.close()
 
+    def download_chunks(self, chunks_list):
+        res = True
+        while len(chunks_list) > 0:
+            c = chunks_list.pop(0)
+            c_sources = self.mdm.resolve(c)
+            random.shuffle(c_sources)
+            downloaded = False
+            for source in c_sources:
+                remote_dm_URI = ("PYROLOC://" + source + ":" +
+                                 str(data_manager_port) + "/data_manager")
+                remote_dm = Pyro.core.getProxyForURI(remote_dm_URI)
+                try:
+                    (request_was_processed, data) = remote_dm.get_chunk(c)
+                    if not request_was_processed:
+                        logging.debug("busy source: " + source)
+                        # FBR: we must retry later!!!
+                    else:
+                        remote_dm.got_chunk() # unlock the server
+                        if data != None:
+                            # store it locally
+                            downloaded = True
+                            temp_file = TemporaryFile()
+                            temp_file.write(data)
+                            temp_file.flush()
+                            temp_file.seek(0)
+                            (idx, dfs_path) = self.decode_chunk_name(c)
+                            self.add_local_chunk(idx, dfs_path, temp_file)
+                            temp_file.close()
+                            self.mdm.update_add_node(dfs_path, idx,
+                                                     self.hostname)
+                            break
+                        else:
+                            logging.error("chunk: " + c + " not there: " +
+                                          source)
+                except:
+                    logging.exception("problem with " + remote_dm_URI)
+            if not downloaded:
+                logging.debug("could not download: " + c)
+                res = False
+                # FBR: we must retry later!!!
+        return res
+
     # download a DFS file and dump it to a local file
     def get(self, dfs_path, fs_output_path, append_mode = False):
         if fs_output_path == None:
@@ -195,33 +244,32 @@ class DataManager(Pyro.core.ObjBase):
                     remote_chunks.append(c)
             self.data_store_lock.release()
             random.shuffle(remote_chunks)
-            # FBR: TODO download them then publish current host as hosting
-            #      these chunks too
-            #
-            # dump all chunks from local store to fs_output_path and
-            # in the right order please
-            if append_mode:
-                output_file = open(fs_output_path, 'ab')
-            else:
-                output_file = open(fs_output_path, 'wb')
-            try:
-                self.data_store_lock.acquire()
-                read_only_data_store = TarFile(self.storage_file, 'r')
-                self.data_store_lock.release()
-                for c in meta_info.get_chunk_names():
+            all_chunks_available = self.download_chunks(remote_chunks)
+            if all_chunks_available:
+                # dump all chunks from local store to fs_output_path and
+                # in the right order please
+                if append_mode:
+                    output_file = open(fs_output_path, 'ab')
+                else:
+                    output_file = open(fs_output_path, 'wb')
+                try:
                     self.data_store_lock.acquire()
-                    untared_file = read_only_data_store.extractfile(c)
+                    read_only_data_store = TarFile(self.storage_file, 'r')
                     self.data_store_lock.release()
-                    if untared_file == None:
-                        logging.fatal("could not extract " + c +
-                                      " from local store")
-                    else:
-                        output_file.write(untared_file.read())
-            except:
-                logging.exception("problem while writing " +
-                                  dfs_path + " to " + fs_output_path)
-            read_only_data_store.close()
-            output_file.close()
+                    for c in meta_info.get_chunk_names():
+                        self.data_store_lock.acquire()
+                        untared_file = read_only_data_store.extractfile(c)
+                        self.data_store_lock.release()
+                        if untared_file == None:
+                            logging.fatal("could not extract " + c +
+                                          " from local store")
+                        else:
+                            output_file.write(untared_file.read())
+                except:
+                    logging.exception("problem while writing " +
+                                      dfs_path + " to " + fs_output_path)
+                read_only_data_store.close()
+                output_file.close()
 
     def ls_files(self):
         return self.mdm.ls_files()
