@@ -65,11 +65,10 @@ class MetaDataManager(Pyro.core.ObjBase):
         self.chunks_lock.release()
         return res
 
-    def resolve(self, chunks_list):
+    def resolve(self, chunk_name):
         res = []
         self.chunks_lock.acquire()
-        for c in chunks_list:
-            res.append((c, self.chunks[c]))
+        res = self.chunks[chunk_name]
         self.chunks_lock.release()
         return res
 
@@ -103,27 +102,21 @@ class MetaDataManager(Pyro.core.ObjBase):
         return res
 
     # augment nodes list for an existing file chunk
-    def update_add_node(self, dfs_path, chunk_ID, node_name):
-        self.files_lock.acquire()
-        metadata = self.files.get(dfs_path)
-        if metadata == None:
-            logging.error("no file: " + dfs_path +
-                          " can't add node for chunk: " + chunk_ID)
-        else:
-            chunk = metadata.get_chunk(chunk_ID)
-            if chunk == None:
-                logging.error("no chunk: " + chunk_ID +
-                              " for file: " + dfs_path)
-            else:
-                chunk.add_node(node_name)
-        self.files_lock.release()
+    def update_add_node(self, dfs_path, chunk_ID, publication_host):
+        if dfs_path.startswith('/'):
+            dfs_path = dfs_path[1:]
+        c = str(chunk_ID) + "/" + dfs_path
+        self.chunks_lock.acquire()
+        self.nodes[publication_host] = True
+        self.chunks[c].append(publication_host)
+        self.chunks_lock.release()
+
+    # shrink nodes list for an existing file chunk
+    def update_remove_node(self, dfs_path, chunk_ID, node_name):
+        pass
 
     def started(self):
         return True
 
     def stop(self):
         self.pyro_daemon_loop_cond = False
-
-    # shrink nodes list for an existing file chunk
-    def update_remove_node(self, dfs_path, chunk_ID, node_name):
-        pass
