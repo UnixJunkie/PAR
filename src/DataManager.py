@@ -39,6 +39,13 @@ class PickableFile:
 
 class DataManager(Pyro.core.ObjBase):
 
+    # FBR: need to serve file chunks
+    # 
+    #      if we are serving one, we should abort other requests until this one
+    #      is finished, this means this Pyro server should be multithread
+    #      if the requested chunk is not available locally, we should return
+    #      an error so that the client can update the global meta data info
+
     def __init__(self, remote_server, remote_port):
         Pyro.core.ObjBase.__init__(self)
         # when compressing, we must compress before cuting into chunks so we
@@ -185,7 +192,8 @@ class DataManager(Pyro.core.ObjBase):
                     else:
                         output_file.write(untared_file.read())
             except:
-                logging.exception("problem while writing " + original_dfs_path +
+                logging.exception("problem while writing " +
+                                  original_dfs_path +
                                   " to " + fs_output_path)
             read_only_data_store.close()
             output_file.close()
@@ -223,17 +231,13 @@ def usage():
     """
 
 if __name__ == '__main__':
-    # try to connect to the local Pyro object DataManager
-    # if there is not one, then create and fork one
-    # then discuss with this object
-    # we need to make file chunks pickable
     logging.basicConfig(level  = logging.DEBUG,
                         format = '%(asctime)s %(levelname)s %(message)s')
     dataManager_URI = "PYROLOC://localhost:7766/DataManager"
     dm = Pyro.core.getProxyForURI(dataManager_URI)
     dm_already_here = False
     try:
-        _ignore = dm.started()
+        ignore = dm.started()
         dm_already_here = True
     except Pyro.errors.ProtocolError:
         print("starting DataManager daemon...")
