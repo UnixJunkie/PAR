@@ -33,13 +33,17 @@ from tempfile        import TemporaryFile
 from MetaDataManager import MetaDataManager
 from Pyro.errors     import NamingError
 
-class PickableFile:
-    def __init__(self, fileobject):
-        self.data = fileobject.read()
+# FBR: * logs should go to a local file?
+#          Sure, when not in interactive mode
+#      * connect to a distant mdm or have a local one?
+
+pyro_default_port      = 7766
+data_manager_port      = 7767
+meta_data_manager_port = 7768
 
 class DataManager(Pyro.core.ObjBase):
 
-    def __init__(self, remote_server, remote_port):
+    def __init__(self):
         Pyro.core.ObjBase.__init__(self)
         # when compressing, we must compress before cuting into chunks so we
         # will have fewer chunks to transfer instead of having smaller ones
@@ -74,19 +78,16 @@ class DataManager(Pyro.core.ObjBase):
             temp_file.close()
         except:
             logging.exception("can't create or write to: " + self.storage_file)
-#         logging.info('Locating Name Server...')
-#         locator = Pyro.naming.NameServerLocator()
-#         ns = locator.getNS(host = remote_server,
-#                            port = remote_port)
-#         logging.info('Located')
-#         try:
-#             logging.info('Locating meta_data_manager...')
-#             URI = ns.resolve('meta_data_manager')
-#             logging.info('Located')
-#         except NamingError,x:
-#             logging.exception("Couldn't find object, nameserver says: " + x)
-#             raise SystemExit
-#        self.mdm = Pyro.core.getProxyForURI(URI)
+            sys.exit(0)
+        self.mdm = MetaDataManager()
+
+    # change MetaDataManager
+    def use_remote_mdm(self, host, port = meta_data_manager_port):
+        mdm_URI = "PYROLOC://" + host + ":" + str(port) + "/meta_data_manager"
+        self.mdm = Pyro.core.getProxyForURI(mdm_URI)
+
+    # change MetaDataManager
+    def use_local_mdm(self):
         self.mdm = MetaDataManager()
 
     def get_chunk_name(self, chunk_number, dfs_path):
@@ -247,18 +248,21 @@ def usage():
     get dfs_name   [local_file] - retrieve a file
     h[elp]                      - the present prose
     k[ill]                      - stop DataManager deamon then exit
+    lmdm                        - use a local MetaDataManager
     ls                          - list files
     lsac                        - list all chunks
-    lslc                        - list only local chunks
+    lslc                        - list local chunks only
     lsn                         - list nodes
     put local_file [dfs_name]   - publish a file
     q[uit] | e[xit]             - stop this wonderful program
+    rmdm host [port]            - use a remote MetaDataManager
     """
 
 if __name__ == '__main__':
     logging.basicConfig(level  = logging.DEBUG,
                         format = '%(asctime)s %(levelname)s %(message)s')
-    dataManager_URI = "PYROLOC://localhost:7766/DataManager"
+    dataManager_URI = ("PYROLOC://localhost:" + str(data_manager_port) +
+                       "/data_manager")
     dm = Pyro.core.getProxyForURI(dataManager_URI)
     dm_already_here = False
     try:
@@ -270,11 +274,11 @@ if __name__ == '__main__':
         pid = os.fork()
         if pid == 0: # child process
             Pyro.core.initServer()
-            daemon = Pyro.core.Daemon()
-            dm = DataManager("FBR:remote Pyro server", "FBR:remote port")
+            daemon = Pyro.core.Daemon(port = data_manager_port)
+            dm = DataManager()
             # have a test file in dfs for CLI tests
             dm.put("/proc/cpuinfo","cpuinfo")
-            uri = daemon.connect(dm, 'DataManager') # publish object
+            uri = daemon.connect(dm, 'data_manager') # publish object
             daemon.requestLoop(condition=lambda: dm.pyro_daemon_loop_cond)
             daemon.disconnect(dm) # when it ends because stop
             daemon.shutdown()
@@ -302,6 +306,19 @@ if __name__ == '__main__':
                     param_2 = splitted[2]
                 if command in ["help", "h"]:
                     usage()
+                elif command == "lmdm":
+                    dm.use_local_mdm()
+                    print "connected to local MetaDataManager"
+                elif command == "rmdm":
+                    if argc == 2:
+                        dm.use_remote_mdm(param_1)
+                        print "connected to remote MetaDataManager"
+                    elif argc == 3:
+                        dm.use_remote_mdm(param_1, param_2)
+                        print "connected to remote MetaDataManager"
+                    else:
+                        logging.error("need one or two params")
+                        usage()
                 elif command == "ls":
                     print "files:"
                     print dm.ls_files()
