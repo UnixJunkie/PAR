@@ -1,5 +1,7 @@
 MUST DO
 -------
+* allow recursive put and get for directories in DataManager
+* allow commands sequence to be sent to the DataManager (batch case use)
 * start processing results before workers are finished
   do we really need locks in worker threads?
 * add data management: single write and multiple read style virtual file-system
