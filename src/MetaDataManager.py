@@ -41,6 +41,7 @@ class MetaDataManager(Pyro.core.ObjBase):
         self.files  = {} # MetaData objects indexed by their dfs_path
         self.chunks = {} # mapping chunk_ID -> source nodes list
         self.nodes  = {} # chunk sources
+        self.pyro_daemon_loop_cond = True
 
     def ls_files(self):
         res = []
@@ -116,6 +117,12 @@ class MetaDataManager(Pyro.core.ObjBase):
             else:
                 chunk.add_node(node_name)
         self.files_lock.release()
+
+    def started(self):
+        return True
+
+    def stop(self):
+        self.pyro_daemon_loop_cond = False
 
     # shrink nodes list for an existing file chunk
     def update_remove_node(self, dfs_path, chunk_ID, node_name):
