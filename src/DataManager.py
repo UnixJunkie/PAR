@@ -108,14 +108,17 @@ class DataManager(Pyro.core.ObjBase):
         self.data_store_lock.release()
 
     # return (False, None) if busy
-    #        (True,  None) if not busy but chunk was not found
-    #                      WARNING: client must update meta data info then?
-    #        (True,  c)    if not busy and chunk found
-    # IMPORTANT: call got_chunk just after on client side
+    #        (True***,  None) if not busy but chunk was not found
+    #                         WARNING: client must update meta data info then?
+    #        (True***,  c)    if not busy and chunk found
+    # ***IMPORTANT: call got_chunk just after on client side if True was
+    #               returned as first in the pair
     def get_chunk(self, chunk_name):
         res = (False, None)
         ready = self.chunk_server_lock.acquire(False)
         if ready:
+            # we acquired the lock to forbid simultaneous transfers
+            # because we don't want the bandwidth to be shared between clients
             if self.local_chunks.get(chunk_name) == None:
                 res = (True, None)
             else:
@@ -133,7 +136,8 @@ class DataManager(Pyro.core.ObjBase):
                     res = (True, chunk)
         return res
 
-    # IMPORTANT: must be called just after get_chunk
+    # notify transfer finished so that other can download chunks from the
+    # current DataManager
     def got_chunk(self):
         self.chunk_server_lock.release()
 
