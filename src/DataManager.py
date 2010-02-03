@@ -54,6 +54,7 @@ class DataManager(Pyro.core.ObjBase):
         self.storage_file   = ("/tmp/dfs_" + os.getlogin() +
                                "_at_" + self.hostname)
         self.local_chunks   = {}
+        self.pyro_daemon_loop_cond = True
         try:
             # The TarFile interface forces us to use a temporary file.
             # Maybe it makes some unnecessary data copy, however having
@@ -158,7 +159,6 @@ class DataManager(Pyro.core.ObjBase):
                     remote_chunks.append(c)
             self.lock.release()
             random.shuffle(remote_chunks)
-            remote_chunks_mapping = self.mdm.resolve(remote_chunks)
             # FBR: TODO download them then publish current host as hosting
             #      this chunks too
             #
@@ -199,20 +199,27 @@ class DataManager(Pyro.core.ObjBase):
     def ls_nodes(self):
         return self.mdm.ls_nodes()
 
+    def started(self):
+        return True
+
+    def stop(self):
+        self.pyro_daemon_loop_cond = False
+
 def usage():
     #0              1    1   2        3            1   2        3
     print """usage:
     command [parameters]
     ---
+    app dfs_name   local_file   - append file to a local one
+    cat dfs_name                - output file to screen
+    get dfs_name   [local_file] - retrieve a file
+    h[elp]                      - the present prose
+    k[ill]                      - stop DataManager deamon then exit
     ls                          - list files
     lsc                         - list chunks
     lsn                         - list nodes
     put local_file [dfs_name]   - publish a file
-    get dfs_name   [local_file] - retrieve a file
-    cat dfs_name                - output file to screen
-    app dfs_name   local_file   - append file to a local one
     q[uit] | e[xit]             - stop this wonderful program
-    h[elp]                      - the present prose
     """
 
 if __name__ == '__main__':
@@ -224,25 +231,29 @@ if __name__ == '__main__':
                         format = '%(asctime)s %(levelname)s %(message)s')
     dataManager_URI = "PYROLOC://localhost:7766/DataManager"
     dm = Pyro.core.getProxyForURI(dataManager_URI)
+    dm_already_here = False
     try:
-        ignore = dm.ls()
-        logging.debug("DataManager OK")
+        _ignore = dm.started()
+        dm_already_here = True
     except Pyro.errors.ProtocolError:
-        logging.debug("DataManager KO, launching one")
+        print("starting DataManager daemon...")
         # no local DataManager running, create one and fork it away
         pid = os.fork()
         if pid == 0: # child process
             Pyro.core.initServer()
             daemon = Pyro.core.Daemon()
             dm = DataManager("FBR:remote Pyro server", "FBR:remote port")
+            # have a test file in dfs for CLI tests
+            dm.put("/proc/cpuinfo","cpuinfo")
             uri = daemon.connect(dm, 'DataManager') # publish object
-            daemon.requestLoop() # infinite loop
-    print "toto"
-    time.sleep(0.1) # wait for him to enter his infinite loop
-    # FBR: there is some Pyro code to actively loop and wait for him, this
-    #      would be safer
-    print "titi"
-    dm.put("/proc/cpuinfo","cpuinfo") # have a test file in dfs for CLI tests
+            daemon.requestLoop(condition=lambda: dm.pyro_daemon_loop_cond)
+            daemon.disconnect(dm) # when it ends because stop
+            daemon.shutdown()
+            sys.exit(0)
+    if not dm_already_here:
+        time.sleep(0.1) # wait for him to enter his infinite loop
+    else:
+        print("DataManager daemon OK")
     try:
         usage()
         while True:
@@ -271,6 +282,9 @@ if __name__ == '__main__':
                 elif command == "lsn":
                     print "nodes:"
                     print dm.ls_nodes()
+                elif command in ["k","kill"]:
+                    dm.stop()
+                    sys.exit(0)
                 elif command == "put":
                     if argc not in [2, 3]:
                         logging.error("need one or two params")
@@ -295,7 +309,7 @@ if __name__ == '__main__':
                         usage()
                     else:
                         dm.get(param_1, "/dev/stdout")
-                elif command in ["quit", "q", "exit", "e"]:
+                elif command in ["q","quit", "e", "exit"]:
                     sys.exit(0)
                 else:
                     logging.error("unknown command: " + command)
