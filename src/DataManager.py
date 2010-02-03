@@ -39,13 +39,6 @@ class PickableFile:
 
 class DataManager(Pyro.core.ObjBase):
 
-    # FBR: need to serve file chunks
-    #
-    #      if we are serving one, we should abort other requests until this one
-    #      is finished, this means this Pyro server should be multithread
-    #      if the requested chunk is not available locally, we should return
-    #      an error so that the client can update the global meta data info
-
     def __init__(self, remote_server, remote_port):
         Pyro.core.ObjBase.__init__(self)
         # when compressing, we must compress before cuting into chunks so we
@@ -228,7 +221,7 @@ class DataManager(Pyro.core.ObjBase):
     def ls_files(self):
         return self.mdm.ls_files()
 
-    def ls_chunks(self):
+    def ls_all_chunks(self):
         return self.mdm.ls_chunks()
 
     def ls_nodes(self):
@@ -251,7 +244,8 @@ def usage():
     h[elp]                      - the present prose
     k[ill]                      - stop DataManager deamon then exit
     ls                          - list files
-    lsc                         - list chunks
+    lsac                        - list all chunks
+    lslc                        - list only local chunks
     lsn                         - list nodes
     put local_file [dfs_name]   - publish a file
     q[uit] | e[xit]             - stop this wonderful program
@@ -307,9 +301,12 @@ if __name__ == '__main__':
                 elif command == "ls":
                     print "files:"
                     print dm.ls_files()
-                elif command == "lsc":
-                    print "chunks:"
-                    print dm.ls_chunks()
+                elif command == "lsac":
+                    print "all chunks:"
+                    print dm.ls_all_chunks()
+                elif command == "lslc":
+                    print "local chunks:"
+                    print dm.ls_local_chunks()
                 elif command == "lsn":
                     print "nodes:"
                     print dm.ls_nodes()
