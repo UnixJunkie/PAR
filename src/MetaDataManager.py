@@ -28,8 +28,10 @@ import Pyro.core, Pyro.naming
 from MetaData import MetaData
 
 class MetaDataManager(Pyro.core.ObjBase):
-    def __init__(self):
+    
+    def __init__(self, debug = False):
         Pyro.core.ObjBase.__init__(self)
+        self.debug = debug
         # FBR: maybe this logger config will move somewhere else
         logging.basicConfig(level  = logging.DEBUG,
                             format = '%(asctime)s %(levelname)s %(message)s')
@@ -46,30 +48,38 @@ class MetaDataManager(Pyro.core.ObjBase):
     def ls_files(self):
         res = []
         self.files_lock.acquire()
+        if self.debug: print "self.files_lock ACK"
         for v in self.files.values():
             res.append(v.get_uniq_ID())
         self.files_lock.release()
+        if self.debug: print "self.files_lock REL"
         return res
 
     def ls_chunks(self):
         res = []
         self.chunks_lock.acquire()
+        if self.debug: print "self.chunks_lock ACK"
         for v in self.chunks.keys():
             res.append(v + ':' + str(self.chunks[v]))
         self.chunks_lock.release()
+        if self.debug: print "self.chunks_lock REL"
         return res
 
     def ls_nodes(self):
         self.chunks_lock.acquire()
+        if self.debug: print "self.chunks_lock ACK"
         res = self.nodes.keys()
         self.chunks_lock.release()
+        if self.debug: print "self.chunks_lock REL"
         return res
 
     def resolve(self, chunk_name):
         res = []
         self.chunks_lock.acquire()
+        if self.debug: print "self.chunks_lock ACK"
         res = self.chunks[chunk_name]
         self.chunks_lock.release()
+        if self.debug: print "self.chunks_lock REL"
         return res
 
     # publish a new file's meta data object
@@ -78,27 +88,33 @@ class MetaDataManager(Pyro.core.ObjBase):
         to_publish = MetaData(dfs_path, publication_host, size, nb_chunks)
         uid = to_publish.get_uniq_ID()
         self.files_lock.acquire()
+        if self.debug: print "self.files_lock ACK"
         if self.files.get(uid) == None:
             self.files[uid] = to_publish
         else:
             logging.error("can't overwrite: " + uid)
             give_up = True
         self.files_lock.release()
+        if self.debug: print "self.files_lock REL"
         if not give_up:
             if dfs_path.startswith('/'):
                 dfs_path = dfs_path[1:]
             self.chunks_lock.acquire()
+            if self.debug: print "self.chunks_lock ACK"
             if self.nodes.get(publication_host) == None:
                 self.nodes[publication_host] = True
             for c in to_publish.get_chunk_names():
                 self.chunks[c] = [publication_host]
             self.chunks_lock.release()
+            if self.debug: print "self.chunks_lock REL"
 
     # retrieve a file's meta data
     def get_meta_data(self, dfs_path):
         self.files_lock.acquire()
+        if self.debug: print "self.files_lock ACK"
         res = self.files.get(dfs_path)
         self.files_lock.release()
+        if self.debug: print "self.files_lock REL"
         return res
 
     # augment nodes list for an existing file chunk
@@ -107,9 +123,11 @@ class MetaDataManager(Pyro.core.ObjBase):
             dfs_path = dfs_path[1:]
         c = str(chunk_ID) + "/" + dfs_path
         self.chunks_lock.acquire()
+        if self.debug: print "self.chunks_lock ACK"
         self.nodes[publication_host] = True
         self.chunks[c].append(publication_host)
         self.chunks_lock.release()
+        if self.debug: print "self.chunks_lock REL"
 
     # shrink nodes list for an existing file chunk
     def update_remove_node(self, dfs_path, chunk_ID, node_name):
