@@ -357,6 +357,8 @@ if __name__ == '__main__':
             launch_local_meta_data_manager()
     if not mdm_already_here:
         time.sleep(0.1) # wait for him to enter his infinite loop
+                        # FBR: I don't like this, it adds some unneeded
+                        #      latency
     else:
         print("MDM daemon OK")
     try:
