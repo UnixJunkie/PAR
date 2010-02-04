@@ -128,6 +128,9 @@ class DataManager(Pyro.core.ObjBase):
     #        (True***,  c)    if not busy and chunk found
     # ***IMPORTANT: call got_chunk just after on client side if True was
     #               returned as first in the pair
+    # FBR: all this stuff is only useful if the Pyro daemon running it
+    #      is multithread... If not, then calls are blocking until chunk
+    #      download is finished, exactly what we want to avoid :(
     def get_chunk(self, chunk_name):
         res = (False, None)
         ready = self.chunk_server_lock.acquire(False)
@@ -197,6 +200,8 @@ class DataManager(Pyro.core.ObjBase):
         while len(chunks_list) > 0:
             c = chunks_list.pop(0)
             c_sources = self.mdm.resolve(c)
+            # shuffle is here to increase pipelining and parallelization
+            # of transfers
             random.shuffle(c_sources)
             downloaded = False
             for source in c_sources:
@@ -207,7 +212,6 @@ class DataManager(Pyro.core.ObjBase):
                     (request_was_processed, data) = remote_dm.get_chunk(c)
                     if not request_was_processed:
                         logging.debug("busy source: " + source)
-                        # FBR: we must retry later!!!
                     else:
                         remote_dm.got_chunk() # unlock the server
                         if data != None:
@@ -231,27 +235,35 @@ class DataManager(Pyro.core.ObjBase):
             if not downloaded:
                 logging.debug("could not download: " + c)
                 res = False
-                # FBR: we must retry later!!!
         return res
+
+    def find_remote_chunks(self, meta_info):
+        remote_chunks = []
+        self.data_store_lock.acquire()
+        for c in meta_info.get_chunk_names():
+            if self.local_chunks.get(c) == None:
+                remote_chunks.append(c)
+        self.data_store_lock.release()
+        return remote_chunks
 
     # download a DFS file and dump it to a local file
     def get(self, dfs_path, fs_output_path, append_mode = False):
+        res = True
         if fs_output_path == None:
             fs_output_path = dfs_path
-        # shuffle is here to increase pipelining and parallelization
-        # of transfers
-        remote_chunks = []
         meta_info = self.mdm.get_meta_data(dfs_path)
         if meta_info == None:
             logging.error("no such file: " + dfs_path)
         else:
-            self.data_store_lock.acquire()
-            for c in meta_info.get_chunk_names():
-                if self.local_chunks.get(c) == None:
-                    remote_chunks.append(c)
-            self.data_store_lock.release()
-            random.shuffle(remote_chunks)
-            all_chunks_available = self.download_chunks(remote_chunks)
+            all_chunks_available = False
+            for _ in range(3): # try hard
+                remote_chunks = self.find_remote_chunks(meta_info)
+                # shuffle is here to increase pipelining and parallelization
+                # of transfers
+                random.shuffle(remote_chunks)
+                all_chunks_available = self.download_chunks(remote_chunks)
+                if all_chunks_available:
+                    break
             if all_chunks_available:
                 # dump all chunks from local store to fs_output_path and
                 # in the right order please
@@ -277,6 +289,10 @@ class DataManager(Pyro.core.ObjBase):
                                       dfs_path + " to " + fs_output_path)
                 read_only_data_store.close()
                 output_file.close()
+            else:
+                res = False
+                logging.error("could not get complete file: " + dfs_path)
+        return res
 
     def ls_files(self):
         return self.mdm.ls_files()
