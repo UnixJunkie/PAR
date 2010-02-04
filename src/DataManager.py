@@ -22,8 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ---
 """
 
-import commands, logging, os, cPickle, random
-import socket, sys, stat, thread, time
+import logging, os, random, socket, sys, stat, thread, time
 
 import Pyro.core, Pyro.naming
 
@@ -102,14 +101,16 @@ class DataManager(Pyro.core.ObjBase):
         return str(chunk_number) + '/' + dfs_path
 
     def chunk_name_to_index(self, chunk_name):
-        return int((chunk_name.split('/'))[0])
+        end = chunk_name.index('/')
+        return int(chunk_name[0:end])
 
     def chunk_name_to_dfs_path(self, chunk_name):
-        return "/".join(chunk_name.split('/')[1:])
+        begin = chunk_name.index('/')
+        return chunk_name[begin+1:]
 
     def decode_chunk_name(self, chunk_name):
-        s = chunk_name.split('/')
-        return (int(s[0]), "/".join(chunk_name.split('/')[1:]))
+        middle = chunk_name.index('/')
+        return (int(chunk_name[0:middle]), chunk_name[middle+1:])
 
     def add_local_chunk(self, chunk_number, dfs_path, tmp_file):
         chunk_name = self.get_chunk_name(chunk_number, dfs_path)
@@ -296,7 +297,7 @@ def launch_local_meta_data_manager():
     Pyro.core.initServer()
     daemon = Pyro.core.Daemon(port = meta_data_manager_port)
     mdm = MetaDataManager()
-    uri = daemon.connect(mdm, 'meta_data_manager') # publish object
+    daemon.connect(mdm, 'meta_data_manager') # publish object
     daemon.requestLoop(condition=lambda: mdm.pyro_daemon_loop_cond)
     # the following is executed only after mdm.stop() was called
     daemon.disconnect(mdm)
@@ -308,7 +309,7 @@ def launch_local_data_manager():
     daemon = Pyro.core.Daemon(port = data_manager_port)
     dm = DataManager()
     dm.put("/proc/cpuinfo","cpuinfo") # a test file for tests
-    uri = daemon.connect(dm, 'data_manager') # publish object
+    daemon.connect(dm, 'data_manager') # publish object
     daemon.requestLoop(condition=lambda: dm.pyro_daemon_loop_cond)
     # the following is executed only after dm.stop() was called
     daemon.disconnect(dm)
