@@ -42,8 +42,9 @@ meta_data_manager_port = 7768
 
 class DataManager(Pyro.core.ObjBase):
 
-    def __init__(self):
+    def __init__(self, debug = False):
         Pyro.core.ObjBase.__init__(self)
+        self.debug = debug
         # when compressing, we must compress before cuting into chunks so we
         # will have fewer chunks to transfer instead of having smaller ones
         # (better for network latency I think)
@@ -65,10 +66,12 @@ class DataManager(Pyro.core.ObjBase):
             # our chunks kept in the standard tar format is too cool
             # to be changed
             self.data_store_lock.acquire()
+            if self.debug: print "self.data_store_lock ACK"
             self.data_store = TarFile(self.storage_file, 'w')
             os.chmod(self.data_store.fileobj.name,
                      stat.S_IRUSR | stat.S_IWUSR) # <=> chmod 600 ...
             self.data_store_lock.release()
+            if self.debug: print "self.data_store_lock REL"
             temp_file = TemporaryFile()
             temp_file.write("DFS_STORAGE_v00\n")
             temp_file.flush()
@@ -116,12 +119,14 @@ class DataManager(Pyro.core.ObjBase):
     def add_local_chunk(self, chunk_number, dfs_path, tmp_file):
         chunk_name = self.get_chunk_name(chunk_number, dfs_path)
         self.data_store_lock.acquire()
+        if self.debug: print "self.data_store_lock ACK"
         tar_info = self.data_store.gettarinfo (arcname = chunk_name,
                                                fileobj = tmp_file)
         self.data_store.addfile(tar_info, tmp_file)
         self.data_store.fileobj.flush()
         self.local_chunks[chunk_name] = True
         self.data_store_lock.release()
+        if self.debug: print "self.data_store_lock REL"
 
     # return (False, None) if busy
     #        (True***,  None) if not busy but chunk was not found
@@ -142,9 +147,11 @@ class DataManager(Pyro.core.ObjBase):
                 res = (True, None)
             else:
                 self.data_store_lock.acquire()
+                if self.debug: print "self.data_store_lock ACK"
                 read_only_data_store = TarFile(self.storage_file, 'r')
                 untared_file = read_only_data_store.extractfile(chunk_name)
                 self.data_store_lock.release()
+                if self.debug: print "self.data_store_lock REL"
                 if untared_file == None:
                     logging.fatal("could not extract " + chunk_name +
                                   " from local store despite it was listed" +
@@ -163,8 +170,10 @@ class DataManager(Pyro.core.ObjBase):
     def ls_local_chunks(self):
         res = []
         self.data_store_lock.acquire()
+        if self.debug: print "self.data_store_lock ACK"
         res = self.local_chunks.keys()
         self.data_store_lock.release()
+        if self.debug: print "self.data_store_lock REL"
         return res
 
     # publish a local file into the DFS
@@ -241,10 +250,12 @@ class DataManager(Pyro.core.ObjBase):
     def find_remote_chunks(self, meta_info):
         remote_chunks = []
         self.data_store_lock.acquire()
+        if self.debug: print "self.data_store_lock ACK"
         for c in meta_info.get_chunk_names():
             if self.local_chunks.get(c) == None:
                 remote_chunks.append(c)
         self.data_store_lock.release()
+        if self.debug: print "self.data_store_lock REL"
         return remote_chunks
 
     # download a DFS file and dump it to a local file
@@ -257,12 +268,15 @@ class DataManager(Pyro.core.ObjBase):
             logging.error("no such file: " + dfs_path)
         else:
             all_chunks_available = False
-            for _ in range(3): # try hard
+            for trial in range(3): # try hard
+                if self.debug: print "trial:" + str(trial)
                 remote_chunks = self.find_remote_chunks(meta_info)
+                if self.debug: print remote_chunks
                 # shuffle is here to increase pipelining and parallelization
                 # of transfers
                 random.shuffle(remote_chunks)
                 all_chunks_available = self.download_chunks(remote_chunks)
+                if self.debug: print all_chunks_available
                 if all_chunks_available:
                     break
             if all_chunks_available:
@@ -274,12 +288,16 @@ class DataManager(Pyro.core.ObjBase):
                     output_file = open(fs_output_path, 'wb')
                 try:
                     self.data_store_lock.acquire()
+                    if self.debug: print "self.data_store_lock ACK"
                     read_only_data_store = TarFile(self.storage_file, 'r')
                     self.data_store_lock.release()
+                    if self.debug: print "self.data_store_lock REL"
                     for c in meta_info.get_chunk_names():
                         self.data_store_lock.acquire()
+                        if self.debug: print "self.data_store_lock ACK"
                         untared_file = read_only_data_store.extractfile(c)
                         self.data_store_lock.release()
+                        if self.debug: print "self.data_store_lock REL"
                         if untared_file == None:
                             logging.fatal("could not extract " + c +
                                           " from local store")
@@ -310,33 +328,35 @@ class DataManager(Pyro.core.ObjBase):
     def stop(self):
         self.pyro_daemon_loop_cond = False
 
-def launch_local_meta_data_manager():
+def launch_local_meta_data_manager(debug = False):
     Pyro.core.initServer()
     daemon = Pyro.core.Daemon(port = meta_data_manager_port)
     mdm = MetaDataManager()
     daemon.connect(mdm, 'meta_data_manager') # publish object
-    logfile = open("/tmp/mdm_log_dfs_" + os.getlogin(), 'wb')
-    os.dup2(logfile.fileno(), sys.stdout.fileno())
-    os.dup2(logfile.fileno(), sys.stderr.fileno())
+    if not debug:
+        logfile = open("/tmp/mdm_log_dfs_" + os.getlogin(), 'ab')
+        os.dup2(logfile.fileno(), sys.stdout.fileno())
+        os.dup2(logfile.fileno(), sys.stderr.fileno())
+        os.setsid()
     sys.stdin.close()
-    os.setsid()
     daemon.requestLoop(condition=lambda: mdm.pyro_daemon_loop_cond)
     # the following is executed only after mdm.stop() was called
     daemon.disconnect(mdm)
     daemon.shutdown()
     sys.exit(0)
 
-def launch_local_data_manager():
+def launch_local_data_manager(debug = False):
     Pyro.core.initServer()
     daemon = Pyro.core.Daemon(port = data_manager_port)
     dm = DataManager()
     dm.put("/proc/cpuinfo","cpuinfo") # a test file for tests
     daemon.connect(dm, 'data_manager') # publish object
-    logfile = open("/tmp/dm_log_dfs_" + os.getlogin(), 'wb')
-    os.dup2(logfile.fileno(), sys.stdout.fileno())
-    os.dup2(logfile.fileno(), sys.stderr.fileno())
+    if not debug:
+        logfile = open("/tmp/dm_log_dfs_" + os.getlogin(), 'ab')
+        os.dup2(logfile.fileno(), sys.stdout.fileno())
+        os.dup2(logfile.fileno(), sys.stderr.fileno())
+        os.setsid()
     sys.stdin.close()
-    os.setsid()
     daemon.requestLoop(condition=lambda: dm.pyro_daemon_loop_cond)
     # the following is executed only after dm.stop() was called
     daemon.disconnect(dm)
@@ -446,6 +466,7 @@ def process_commands(commands, dm, mdm, interactive = False):
         if interactive: usage()
 
 if __name__ == '__main__':
+    debug = False
     logging.basicConfig(level  = logging.DEBUG,
                         format = '%(asctime)s %(levelname)s %(message)s')
     interactive = False
@@ -455,10 +476,10 @@ if __name__ == '__main__':
         commands = " ".join(sys.argv[1:])
     dm_URI  = ("PYROLOC://localhost:" + str(data_manager_port) +
                "/data_manager")
-    print dm_URI
+    logging.debug(dm_URI)
     mdm_URI = ("PYROLOC://localhost:" + str(meta_data_manager_port) +
                "/meta_data_manager")
-    print mdm_URI
+    logging.debug(mdm_URI)
     dm  = Pyro.core.getProxyForURI(dm_URI)
     mdm = Pyro.core.getProxyForURI(mdm_URI)
     dm_already_here  = False
@@ -468,29 +489,29 @@ if __name__ == '__main__':
         mdm_already_here = True
     except Pyro.errors.ProtocolError:
         # no local MetaDataManager running
-        print("starting MDM daemon...")
+        logging.debug("starting MDM daemon...")
         pid = os.fork()
         if pid == 0: # child process
-            launch_local_meta_data_manager()
+            launch_local_meta_data_manager(debug)
     if not mdm_already_here:
         time.sleep(0.1) # wait for him to enter his infinite loop
                         # FBR: I don't like this, it adds some unneeded
                         #      latency
     else:
-        print("MDM daemon OK")
+        logging.debug("MDM daemon OK")
     try:
         ignore = dm.started()
         dm_already_here = True
     except Pyro.errors.ProtocolError:
         # no local DataManager running
-        print("starting DM  daemon...")
+        logging.debug("starting DM  daemon...")
         pid = os.fork()
         if pid == 0: # child process
-            launch_local_data_manager()
+            launch_local_data_manager(debug)
     if not dm_already_here:
         time.sleep(0.1) # wait for him to enter his infinite loop
     else:
-        print("DM  daemon OK")
+        logging.debug("DM  daemon OK")
     if interactive:
         try:
             usage()
@@ -507,5 +528,5 @@ if __name__ == '__main__':
             usage()
         else:
             for c in commands.split(','):
-                print c
+                logging.debug(c)
                 process_commands(c, dm, mdm)
