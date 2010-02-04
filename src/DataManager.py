@@ -34,6 +34,7 @@ from Pyro.errors     import NamingError
 
 # FBR: * logs should go to a local file?
 #        Sure but only when not in interactive mode
+#      * make commands listing output cleaner and more readable
 
 pyro_default_port      = 7766
 data_manager_port      = 7767
@@ -362,9 +363,96 @@ def usage():
     rmdm host [port]            - use a remote MetaDataManager
     """
 
+def process_commands(commands, dm, mdm, interactive = False):
+    splitted = commands.split()
+    argc = len(splitted)
+    command = splitted[0]
+    param_1 = None
+    if argc in [2, 3]:
+        param_1 = splitted[1]
+    param_2 = None
+    if argc == 3:
+        param_2 = splitted[2]
+    if command in ["help", "h"]:
+        usage()
+    elif command == "lmdm":
+        dm.use_local_mdm()
+        print "connected to local MDM"
+    elif command == "rmdm":
+        try:
+            rmdm_OK = False
+            if argc == 2:
+                rmdm_OK = dm.use_remote_mdm(param_1)
+            elif argc == 3:
+                rmdm_OK = dm.use_remote_mdm(param_1, param_2)
+            else:
+                logging.error("need one or two params")
+                if interactive: usage()
+            if rmdm_OK:
+                print "connected to remote MDM"
+            else:
+                if argc == 2:
+                    logging.error("MDM not running on: " +
+                                  param_1)
+                if argc == 3:
+                    logging.error("MDM not running on: " +
+                                  param_1 + ":" + param_2)
+        except Pyro.errors.URIError:
+            logging.error("unknown host: " + param_1)
+    elif command == "ls":
+        print "files:"
+        print dm.ls_files()
+    elif command == "lsac":
+        print "all chunks:"
+        print dm.ls_all_chunks()
+    elif command == "lslc":
+        print "local chunks:"
+        print dm.ls_local_chunks()
+    elif command == "lsn":
+        print "nodes:"
+        print dm.ls_nodes()
+    elif command in ["k","kill"]:
+        dm.stop()
+        mdm.stop()
+        sys.exit(0)
+    elif command == "put":
+        if argc not in [2, 3]:
+            logging.error("need one or two params")
+            if interactive: usage()
+        else:
+            dm.put(param_1, param_2)
+    elif command == "get":
+        if argc not in [2, 3]:
+            logging.error("need one or two params")
+            if interactive: usage()
+        else:
+            dm.get(param_1, param_2)
+    elif command == "app":
+        if argc not in [3]:
+            logging.error("need two params")
+            if interactive: usage()
+        else:
+            dm.get(param_1, param_2, True)
+    elif command == "cat":
+        if argc not in [2]:
+            logging.error("need one param")
+            if interactive: usage()
+        else:
+            dm.get(param_1, "/dev/stdout")
+    elif command in ["q","quit", "e", "exit"]:
+        sys.exit(0)
+    else:
+        logging.error("unknown command: " + command)
+        if interactive: usage()
+
 if __name__ == '__main__':
     logging.basicConfig(level  = logging.DEBUG,
                         format = '%(asctime)s %(levelname)s %(message)s')
+    interactive = False
+    if "-i" in sys.argv:
+        interactive = True
+    else:
+        commands = " ".join(sys.argv[1:])
     dm_URI  = ("PYROLOC://localhost:" + str(data_manager_port) +
                "/data_manager")
     print dm_URI
@@ -403,93 +491,21 @@ if __name__ == '__main__':
         time.sleep(0.1) # wait for him to enter his infinite loop
     else:
         print("DM  daemon OK")
-    try:
-        usage()
-        while True:
+    if interactive:
+        try:
+            usage()
             sys.stdout.write("dfs# ") # a cool prompt, isn't it? :-)
             read = sys.stdin.readline().strip()
-            if len(read) == 0:
-                usage()
-            else:
-                splitted = read.split()
-                argc = len(splitted)
-                command = splitted[0]
-                param_1 = None
-                if argc in [2, 3]:
-                    param_1 = splitted[1]
-                param_2 = None
-                if argc == 3:
-                    param_2 = splitted[2]
-                if command in ["help", "h"]:
-                    usage()
-                elif command == "lmdm":
-                    dm.use_local_mdm()
-                    print "connected to local MDM"
-                elif command == "rmdm":
-                    try:
-                        rmdm_OK = False
-                        if argc == 2:
-                            rmdm_OK = dm.use_remote_mdm(param_1)
-                        elif argc == 3:
-                            rmdm_OK = dm.use_remote_mdm(param_1, param_2)
-                        else:
-                            logging.error("need one or two params")
-                            usage()
-                        if rmdm_OK:
-                            print "connected to remote MDM"
-                        else:
-                            if argc == 2:
-                                logging.error("MDM not running on: " +
-                                              param_1)
-                            if argc == 3:
-                                logging.error("MDM not running on: " +
-                                              param_1 + ":" + param_2)
-                    except Pyro.errors.URIError:
-                        logging.error("unknown host: " + param_1)
-                elif command == "ls":
-                    print "files:"
-                    print dm.ls_files()
-                elif command == "lsac":
-                    print "all chunks:"
-                    print dm.ls_all_chunks()
-                elif command == "lslc":
-                    print "local chunks:"
-                    print dm.ls_local_chunks()
-                elif command == "lsn":
-                    print "nodes:"
-                    print dm.ls_nodes()
-                elif command in ["k","kill"]:
-                    dm.stop()
-                    mdm.stop()
-                    sys.exit(0)
-                elif command == "put":
-                    if argc not in [2, 3]:
-                        logging.error("need one or two params")
-                        usage()
-                    else:
-                        dm.put(param_1, param_2)
-                elif command == "get":
-                    if argc not in [2, 3]:
-                        logging.error("need one or two params")
-                        usage()
-                    else:
-                        dm.get(param_1, param_2)
-                elif command == "app":
-                    if argc not in [3]:
-                        logging.error("need two params")
-                        usage()
-                    else:
-                        dm.get(param_1, param_2, True)
-                elif command == "cat":
-                    if argc not in [2]:
-                        logging.error("need one param")
-                        usage()
-                    else:
-                        dm.get(param_1, "/dev/stdout")
-                elif command in ["q","quit", "e", "exit"]:
-                    sys.exit(0)
-                else:
-                    logging.error("unknown command: " + command)
-                    usage()
-    except KeyboardInterrupt:
-        pass
+            while len(read) > 0:
+                process_commands(read, dm, mdm, interactive)
+                sys.stdout.write("dfs# ") # a cool prompt, isn't it? :-)
+                read = sys.stdin.readline().strip()
+        except KeyboardInterrupt:
+            pass
+    else:
+        if len(commands) == 0:
+            usage()
+        else:
+            for c in commands.split(','):
+                print c
+                process_commands(c, dm, mdm)
