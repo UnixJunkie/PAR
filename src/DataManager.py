@@ -367,8 +367,10 @@ if __name__ == '__main__':
                         format = '%(asctime)s %(levelname)s %(message)s')
     dm_URI  = ("PYROLOC://localhost:" + str(data_manager_port) +
                "/data_manager")
+    print dm_URI
     mdm_URI = ("PYROLOC://localhost:" + str(meta_data_manager_port) +
                "/meta_data_manager")
+    print mdm_URI
     dm  = Pyro.core.getProxyForURI(dm_URI)
     mdm = Pyro.core.getProxyForURI(mdm_URI)
     dm_already_here  = False
