@@ -314,6 +314,11 @@ def launch_local_meta_data_manager():
     daemon = Pyro.core.Daemon(port = meta_data_manager_port)
     mdm = MetaDataManager()
     daemon.connect(mdm, 'meta_data_manager') # publish object
+    logfile = open("/tmp/mdm_log_dfs_" + os.getlogin(), 'wb')
+    os.dup2(logfile.fileno(), sys.stdout.fileno())
+    os.dup2(logfile.fileno(), sys.stderr.fileno())
+    sys.stdin.close()
+    os.setsid()
     daemon.requestLoop(condition=lambda: mdm.pyro_daemon_loop_cond)
     # the following is executed only after mdm.stop() was called
     daemon.disconnect(mdm)
@@ -326,6 +331,11 @@ def launch_local_data_manager():
     dm = DataManager()
     dm.put("/proc/cpuinfo","cpuinfo") # a test file for tests
     daemon.connect(dm, 'data_manager') # publish object
+    logfile = open("/tmp/dm_log_dfs_" + os.getlogin(), 'wb')
+    os.dup2(logfile.fileno(), sys.stdout.fileno())
+    os.dup2(logfile.fileno(), sys.stderr.fileno())
+    sys.stdin.close()
+    os.setsid()
     daemon.requestLoop(condition=lambda: dm.pyro_daemon_loop_cond)
     # the following is executed only after dm.stop() was called
     daemon.disconnect(dm)
@@ -383,14 +393,14 @@ if __name__ == '__main__':
         dm_already_here = True
     except Pyro.errors.ProtocolError:
         # no local DataManager running
-        print("starting DM daemon...")
+        print("starting DM  daemon...")
         pid = os.fork()
         if pid == 0: # child process
             launch_local_data_manager()
     if not dm_already_here:
         time.sleep(0.1) # wait for him to enter his infinite loop
     else:
-        print("DM daemon OK")
+        print("DM  daemon OK")
     try:
         usage()
         while True:
