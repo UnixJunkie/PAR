@@ -85,10 +85,16 @@ class DataManager(Pyro.core.ObjBase):
     def use_remote_mdm(self, host, port = meta_data_manager_port):
         mdm_URI = "PYROLOC://" + host + ":" + str(port) + "/meta_data_manager"
         self.mdm = Pyro.core.getProxyForURI(mdm_URI)
+        try:
+            is_remote_up = self.mdm.started()
+        except Pyro.errors.ConnectionClosedError:
+            is_remote_up = False
+        return is_remote_up
 
-    # change MetaDataManager (default)
+    # change MetaDataManager to default one
     def use_local_mdm(self):
-        self.use_remote_mdm("localhost", meta_data_manager_port)
+        if not self.use_remote_mdm("localhost", meta_data_manager_port):
+            logging.fatal("local MDM not running")
 
     def get_chunk_name(self, chunk_number, dfs_path):
         if dfs_path.startswith('/'):
@@ -345,31 +351,31 @@ if __name__ == '__main__':
         mdm_already_here = True
     except Pyro.errors.ProtocolError:
         # no local MetaDataManager running
-        print("starting MetaDataManager daemon...")
+        print("starting MDM daemon...")
         pid = os.fork()
         if pid == 0: # child process
             launch_local_meta_data_manager()
     if not mdm_already_here:
         time.sleep(0.1) # wait for him to enter his infinite loop
     else:
-        print("MetaDataManager daemon OK")
+        print("MDM daemon OK")
     try:
         ignore = dm.started()
         dm_already_here = True
     except Pyro.errors.ProtocolError:
         # no local DataManager running
-        print("starting DataManager daemon...")
+        print("starting DM daemon...")
         pid = os.fork()
         if pid == 0: # child process
             launch_local_data_manager()
     if not dm_already_here:
         time.sleep(0.1) # wait for him to enter his infinite loop
     else:
-        print("DataManager daemon OK")
+        print("DM daemon OK")
     try:
         usage()
         while True:
-            sys.stdout.write("dfs# ") # a cool prompt
+            sys.stdout.write("dfs# ") # a cool prompt, isn't it? :-)
             read = sys.stdin.readline().strip()
             if len(read) == 0:
                 usage()
@@ -387,17 +393,28 @@ if __name__ == '__main__':
                     usage()
                 elif command == "lmdm":
                     dm.use_local_mdm()
-                    print "connected to local MetaDataManager"
+                    print "connected to local MDM"
                 elif command == "rmdm":
-                    if argc == 2:
-                        dm.use_remote_mdm(param_1)
-                        print "connected to remote MetaDataManager"
-                    elif argc == 3:
-                        dm.use_remote_mdm(param_1, param_2)
-                        print "connected to remote MetaDataManager"
-                    else:
-                        logging.error("need one or two params")
-                        usage()
+                    try:
+                        rmdm_OK = False
+                        if argc == 2:
+                            rmdm_OK = dm.use_remote_mdm(param_1)
+                        elif argc == 3:
+                            rmdm_OK = dm.use_remote_mdm(param_1, param_2)
+                        else:
+                            logging.error("need one or two params")
+                            usage()
+                        if rmdm_OK:
+                            print "connected to remote MDM"
+                        else:
+                            if argc == 2:
+                                logging.error("MDM not running on: " +
+                                              param_1)
+                            if argc == 3:
+                                logging.error("MDM not running on: " +
+                                              param_1 + ":" + param_2)
+                    except Pyro.errors.URIError:
+                        logging.error("unknown host: " + param_1)
                 elif command == "ls":
                     print "files:"
                     print dm.ls_files()
