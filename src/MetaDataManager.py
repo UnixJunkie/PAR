@@ -85,7 +85,7 @@ class MetaDataManager(Pyro.core.ObjBase):
     # publish a new file's meta data object
     def publish_meta_data(self, dfs_path, publication_host, size, nb_chunks):
         give_up = False
-        to_publish = MetaData(dfs_path, publication_host, size, nb_chunks)
+        to_publish = MetaData(dfs_path, size, nb_chunks)
         uid = to_publish.get_uniq_ID()
         self.files_lock.acquire()
         if self.debug: print "self.files_lock ACK"

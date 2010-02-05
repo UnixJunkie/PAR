@@ -50,7 +50,7 @@ class MetaData:
     # DataManager must not create this object, he must only give all info
     # to create it to the MetaDataManager which will create and then handle
     # this object
-    def __init__(self, dfs_path, publication_host, size, nb_chunks):
+    def __init__(self, dfs_path, size, nb_chunks):
         self.dfs_path      = dfs_path
         self.creation_time = time.time()
         self.size          = size
