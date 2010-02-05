@@ -22,7 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ---
 """
 
-import logging, os, random, socket, sys, stat, thread, time
+import logging, md5, os, random, socket, sys, stat, thread, time
 
 import Pyro.core, Pyro.naming
 
@@ -179,13 +179,16 @@ class DataManager(Pyro.core.ObjBase):
         return res
 
     # publish a local file into the DFS
-    def put(self, filename, dfs_path = None):
+    def put(self, filename, dfs_path = None, verify = False):
         if not os.path.isfile(filename):
             logging.error("no such file: " + filename)
         else:
             if dfs_path == None:
                 dfs_path = filename
             # compression of added file hook should be here
+            checksums = None
+            if verify:
+                checksums = []
             input_file = open(filename, 'rb')
             try:
                 file_size = 0
@@ -196,13 +199,17 @@ class DataManager(Pyro.core.ObjBase):
                     temp_file = TemporaryFile()
                     temp_file.write(read_buff)
                     temp_file.flush()
+                    if verify:
+                        md5_sum = md5.new()
+                        md5_sum.update(read_buff)
+                        checksums.append(md5_sum.hexdigest())
                     temp_file.seek(0)
                     self.add_local_chunk(chunk_index, dfs_path, temp_file)
                     temp_file.close()
                     chunk_index += 1
                     read_buff = input_file.read(self.CHUNK_SIZE)
                 self.mdm.publish_meta_data(dfs_path, self.hostname,
-                                           file_size, chunk_index)
+                                           file_size, chunk_index, checksums)
             except:
                 logging.exception("problem while reading " + filename)
             input_file.close()
