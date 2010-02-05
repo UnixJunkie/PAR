@@ -239,5 +239,4 @@ if __name__ == '__main__':
             usage()
         else:
             for c in commands.split(','):
-                logging.debug(c)
                 process_commands(c, dm, mdm)
