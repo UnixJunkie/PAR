@@ -36,7 +36,6 @@ from Pyro.errors     import NamingError
 #        Sure but only when not in interactive mode
 #      * make commands listing output cleaner and more readable
 
-#      * stop only local daemons
 #      * list md5 command
 #      * mget, mput and muput
 
