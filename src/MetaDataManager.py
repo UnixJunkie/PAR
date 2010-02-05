@@ -103,7 +103,7 @@ class MetaDataManager(Pyro.core.ObjBase):
             if self.debug: print "self.chunks_lock ACK"
             if self.nodes.get(publication_host) == None:
                 self.nodes[publication_host] = True
-            for (c, _) in to_publish.get_chunk_names():
+            for (c, _) in to_publish.get_chunk_name_and_sums():
                 self.chunks[c] = [publication_host]
             self.chunks_lock.release()
             if self.debug: print "self.chunks_lock REL"

@@ -71,5 +71,5 @@ class MetaData:
     def get_uniq_ID(self):
         return self.dfs_path
 
-    def get_chunk_names(self):
+    def get_chunk_name_and_sums(self):
         return self.chunks_list
