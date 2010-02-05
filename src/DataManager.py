@@ -224,7 +224,7 @@ class DataManager(Pyro.core.ObjBase):
                         logging.debug("busy source: " + source)
                     else:
                         remote_dm.got_chunk() # unlock the server
-                        if data != None:
+                        if data:
                             # store it locally
                             downloaded = True
                             temp_file = TemporaryFile()
