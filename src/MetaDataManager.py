@@ -67,6 +67,17 @@ class MetaDataManager(Pyro.core.ObjBase):
             res.append(v + ':' + str(self.chunks[v]))
         return res
 
+    def ls_chunk_and_sums(self):
+        self.files_lock.acquire()
+        if self.debug: print "self.files_lock ACK"
+        values = list(self.files.values())
+        self.files_lock.release()
+        if self.debug: print "self.files_lock REL"
+        res = []
+        for v in values:
+            res.append(v.get_chunk_name_and_sums())
+        return res
+
     def ls_nodes(self):
         self.chunks_lock.acquire()
         if self.debug: print "self.chunks_lock ACK"
