@@ -42,7 +42,10 @@ meta_data_manager_port = 7768
 
 class DataManager(Pyro.core.ObjBase):
 
-    def __init__(self, debug = False):
+    def __init__(self,
+                 mdm_host = "localhost", mdm_port = meta_data_manager_port,
+                 debug = False):
+
         Pyro.core.ObjBase.__init__(self)
         self.debug = debug
         # when compressing, we must compress before cuting into chunks so we
@@ -60,6 +63,7 @@ class DataManager(Pyro.core.ObjBase):
                                       "_at_" + self.hostname)
         self.local_chunks          = {}
         self.pyro_daemon_loop_cond = True
+        self.mdm = None
         try:
             # The TarFile interface forces us to use a temporary file.
             # Maybe it makes some unnecessary data copy, however having
@@ -81,8 +85,7 @@ class DataManager(Pyro.core.ObjBase):
         except:
             logging.exception("can't create or write to: " + self.storage_file)
             sys.exit(0)
-        self.mdm = None
-        self.use_local_mdm()
+        self.use_remote_mdm(mdm_host, mdm_port)
 
     # change MetaDataManager
     def use_remote_mdm(self, host, port = meta_data_manager_port):
@@ -96,8 +99,7 @@ class DataManager(Pyro.core.ObjBase):
 
     # change MetaDataManager to default one
     def use_local_mdm(self):
-        if not self.use_remote_mdm("localhost", meta_data_manager_port):
-            logging.fatal("local MDM not running")
+        self.use_remote_mdm("localhost", meta_data_manager_port)
 
     def get_chunk_name(self, chunk_number, dfs_path):
         if dfs_path.startswith('/'):
