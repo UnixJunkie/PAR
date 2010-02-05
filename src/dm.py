@@ -57,7 +57,6 @@ def launch_local_data_manager(debug = False):
     Pyro.core.initServer()
     daemon = Pyro.core.Daemon(port = data_manager_port)
     dm = DataManager()
-    dm.put("/proc/cpuinfo","cpuinfo") # a test file for tests
     daemon.connect(dm, 'data_manager') # publish object
     if not debug:
         logfile = open("/tmp/dm_log_dfs_" + os.getlogin(), 'ab')
