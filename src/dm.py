@@ -42,7 +42,7 @@ def launch_local_meta_data_manager(debug = False):
     mdm = MetaDataManager()
     daemon.connect(mdm, 'meta_data_manager') # publish object
     if not debug:
-        logfile = open("/tmp/mdm_log_dfs_" + os.getlogin(), 'ab')
+        logfile = open("/tmp/mdm_log_dfs_" + os.getlogin(), 'wb')
         os.dup2(logfile.fileno(), sys.stdout.fileno())
         os.dup2(logfile.fileno(), sys.stderr.fileno())
         os.setsid()
@@ -59,7 +59,7 @@ def launch_local_data_manager(mdm_host, mdm_port, debug = False):
     dm = DataManager(mdm_host, mdm_port)
     daemon.connect(dm, 'data_manager') # publish object
     if not debug:
-        logfile = open("/tmp/dm_log_dfs_" + os.getlogin(), 'ab')
+        logfile = open("/tmp/dm_log_dfs_" + os.getlogin(), 'wb')
         os.dup2(logfile.fileno(), sys.stdout.fileno())
         os.dup2(logfile.fileno(), sys.stderr.fileno())
         os.setsid()
@@ -89,6 +89,7 @@ def usage():
     rmdm host [port]            - use a remote MetaDataManager
     ls                          - list files
     lsac                        - list all chunks
+    lsacs                       - list all chunk and checksums
     lslc                        - list local chunks only
     lsn                         - list nodes
     q[uit] | e[xit]             - stop this wonderful program
@@ -96,7 +97,7 @@ def usage():
                                   (DataManager and MetaDataManager)
     """
 
-def process_commands(commands, dm, mdm, interactive = False):
+def process_commands(commands, dm, interactive = False):
     splitted = commands.split()
     argc = len(splitted)
     command = splitted[0]
@@ -138,6 +139,9 @@ def process_commands(commands, dm, mdm, interactive = False):
     elif command == "lsac":
         print "all chunks:"
         print dm.ls_all_chunks()
+    elif command == "lsacs":
+        print "all chunk and checksums:"
+        print dm.ls_all_chunk_and_sums()
     elif command == "lslc":
         print "local chunks:"
         print dm.ls_local_chunks()
@@ -269,7 +273,7 @@ if __name__ == '__main__':
             sys.stdout.write("dfs# ") # a cool prompt, isn't it? :-)
             read = sys.stdin.readline().strip()
             while len(read) > 0:
-                process_commands(read, dm, mdm, interactive)
+                process_commands(read, dm, interactive)
                 sys.stdout.write("dfs# ") # a cool prompt, isn't it? :-)
                 read = sys.stdin.readline().strip()
         except KeyboardInterrupt:
@@ -279,4 +283,4 @@ if __name__ == '__main__':
             usage()
         else:
             for c in commands.split(','):
-                process_commands(c, dm, mdm)
+                process_commands(c, dm)
