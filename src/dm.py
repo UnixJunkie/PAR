@@ -71,7 +71,10 @@ def launch_local_data_manager(debug = False):
     sys.exit(0)
 
 def usage():
-    print """usage:
+    print """
+    WARNING: this tool is still in experimental stage...
+
+    usage:
     DataManager.py [-i] [-h mdm_host[:port]] [command [parameters][, ... ]]
       -i : interactive mode
       -h : use remote MetaDataManager
@@ -144,6 +147,7 @@ def process_commands(commands, dm, mdm, interactive = False):
     elif command in ["k","kill"]:
         dm.stop()
         mdm.stop()
+        print "sent kill command to deamons"
         sys.exit(0)
     elif command == "put":
         if argc not in [2, 3]:
@@ -189,6 +193,8 @@ if __name__ == '__main__':
     debug          = False
     interactive    = False
     remote_mdm     = False
+    mdm_host       = "localhost"
+    mdm_port       = meta_data_manager_port
     remote_mdm_i   = find("-h", sys.argv)
     if remote_mdm_i != -1:
         remote_mdm_maybe_port = sys.argv[remote_mdm_i + 1]
@@ -198,10 +204,12 @@ if __name__ == '__main__':
         interactive = True
     else:
         commands = " ".join(sys.argv[commands_start:])
+    # for debugging purpose we could even imagine one can want to connect
+    # to a remote DataManager...
     dm_URI  = ("PYROLOC://localhost:" + str(data_manager_port) +
                "/data_manager")
     print dm_URI
-    mdm_URI = ("PYROLOC://localhost:" + str(meta_data_manager_port) +
+    mdm_URI = ("PYROLOC://" + mdm_host + ':' + str(mdm_port) +
                "/meta_data_manager")
     print mdm_URI
     dm  = Pyro.core.getProxyForURI(dm_URI)
