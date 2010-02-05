@@ -199,11 +199,11 @@ class DataManager(Pyro.core.ObjBase):
                     temp_file = TemporaryFile()
                     temp_file.write(read_buff)
                     temp_file.flush()
-                    if verify:
-                        md5_sum = md5.new()
-                        md5_sum.update(read_buff)
-                        checksums.append(md5_sum.hexdigest())
                     temp_file.seek(0)
+                    if verify:
+                        md5_sum = md5.new(read_buff)
+                        checksums.append(md5_sum.hexdigest())
+                        print md5_sum.hexdigest() # debug !!!
                     self.add_local_chunk(chunk_index, dfs_path, temp_file)
                     temp_file.close()
                     chunk_index += 1
@@ -214,10 +214,10 @@ class DataManager(Pyro.core.ObjBase):
                 logging.exception("problem while reading " + filename)
             input_file.close()
 
-    def download_chunks(self, chunks_list):
+    def download_chunks(self, chunk_and_sums):
         res = True
-        while len(chunks_list) > 0:
-            c = chunks_list.pop(0)
+        while len(chunk_and_sums) > 0:
+            (c, c_sum) = chunk_and_sums.pop(0)
             c_sources = self.mdm.resolve(c)
             # shuffle is here to increase pipelining and parallelization
             # of transfers
@@ -229,12 +229,17 @@ class DataManager(Pyro.core.ObjBase):
                 remote_dm = Pyro.core.getProxyForURI(remote_dm_URI)
                 try:
                     (request_was_processed, data) = remote_dm.get_chunk(c)
-                    if not request_was_processed:
-                        logging.debug("busy source: " + source)
-                    else:
+                    if request_was_processed:
                         remote_dm.got_chunk() # unlock the server
-                        if data:
-                            # store it locally
+                    else:
+                        logging.debug("busy source: " + source)
+                    if data:
+                        # store chunk locally
+                        verif = None
+                        if c_sum:
+                            verif = md5.new(data).hexdigest()
+                            print verif # debug
+                        if verif == c_sum:
                             downloaded = True
                             temp_file = TemporaryFile()
                             temp_file.write(data)
@@ -247,8 +252,12 @@ class DataManager(Pyro.core.ObjBase):
                                                      self.hostname)
                             break
                         else:
-                            logging.error("chunk: " + c + " not there: " +
-                                          source)
+                            logging.error("md5 differ for chunk: "
+                                          + c + " from: " + source +
+                                          " must be: " + c_sum +
+                                          " but is: " + verif)
+                    else:
+                        logging.error("chunk: " + c + " not there: " + source)
                 except:
                     logging.exception("problem with " + remote_dm_URI)
             if not downloaded:
@@ -260,9 +269,9 @@ class DataManager(Pyro.core.ObjBase):
         remote_chunks = []
         self.data_store_lock.acquire()
         if self.debug: print "self.data_store_lock ACK"
-        for (c, _) in meta_info.get_chunk_name_and_sums():
+        for (c, c_sum) in meta_info.get_chunk_name_and_sums():
             if self.local_chunks.get(c) == None:
-                remote_chunks.append(c)
+                remote_chunks.append((c, c_sum))
         self.data_store_lock.release()
         if self.debug: print "self.data_store_lock REL"
         return remote_chunks
@@ -301,7 +310,7 @@ class DataManager(Pyro.core.ObjBase):
                     read_only_data_store = TarFile(self.storage_file, 'r')
                     self.data_store_lock.release()
                     if self.debug: print "self.data_store_lock REL"
-                    for c in meta_info.get_chunk_names():
+                    for (c, _) in meta_info.get_chunk_name_and_sums():
                         self.data_store_lock.acquire()
                         if self.debug: print "self.data_store_lock ACK"
                         untared_file = read_only_data_store.extractfile(c)
