@@ -77,10 +77,13 @@ def usage():
       -h : use remote MetaDataManager
     commands:
     ---
-    put local_file [dfs_name]   - publish a file
-    app dfs_name   local_file   - append file to a local one
+    put  local_file [dfs_name]  - publish a file (chunk's md5sums are computed
+                                  and published, they are verified when you get
+                                  chunks over the network)
+    uput local_file [dfs_name]  - unsafe put (no checksums)
+    app dfs_name    local_file  - append file to a local one
     cat dfs_name                - output file to screen
-    get dfs_name   [local_file] - retrieve a file
+    get dfs_name  [local_file]  - retrieve a file
     h[elp]                      - the prose you are reading
     lmdm                        - use the local MetaDataManager (default)
     rmdm host [port]            - use a remote MetaDataManager
@@ -146,12 +149,15 @@ def process_commands(commands, dm, mdm, interactive = False):
         mdm.stop()
         print "kill: command sent to deamons"
         sys.exit(0)
-    elif command == "put":
+    elif command in ["put", "uput"]:
         if argc not in [2, 3]:
             logging.error("need one or two params")
             if interactive: usage()
         else:
-            dm.put(param_1, param_2)
+            if command == "uput":
+                dm.put(param_1, param_2, False)
+            else:
+                dm.put(param_1, param_2, True)
     elif command == "get":
         if argc not in [2, 3]:
             logging.error("need one or two params")
