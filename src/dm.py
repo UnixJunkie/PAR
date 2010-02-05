@@ -135,19 +135,25 @@ def process_commands(commands, dm, interactive = False):
             logging.error("unknown host: " + param_1)
     elif command == "ls":
         print "files:"
-        print dm.ls_files()
+        for f in dm.ls_files():
+            print "  " + f
     elif command == "lsac":
         print "all chunks:"
-        print dm.ls_all_chunks()
+        for c in dm.ls_all_chunks():
+            print "  " + c
     elif command == "lsacs":
         print "all chunk and checksums:"
-        print dm.ls_all_chunk_and_sums()
+        for l in dm.ls_all_chunk_and_sums():
+            for (c, s) in l:
+                print " " + s + ':' + c
     elif command == "lslc":
         print "local chunks:"
-        print dm.ls_local_chunks()
+        for c in dm.ls_local_chunks():
+            print "  " + c
     elif command == "lsn":
         print "nodes:"
-        print dm.ls_nodes()
+        for n in dm.ls_nodes():
+            print "  " + n
     elif command in ["k","kill"]:
         dm.stop_local_mdm()
         dm.stop()
