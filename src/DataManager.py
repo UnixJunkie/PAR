@@ -348,3 +348,7 @@ class DataManager(Pyro.core.ObjBase):
 
     def stop(self):
         self.pyro_daemon_loop_cond = False
+
+    def stop_local_mdm(self):
+        self.use_local_mdm()
+        self.mdm.stop()
