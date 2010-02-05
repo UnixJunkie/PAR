@@ -365,22 +365,25 @@ def launch_local_data_manager(debug = False):
 
 def usage():
     print """usage:
-    command [parameters]
+    DataManager.py [-i] [-h mdm_host[:port]] [command [parameters]]
+      -i : interactive mode
+      -h : use remote MetaDataManager
+    commands:
     ---
+    put local_file [dfs_name]   - publish a file
     app dfs_name   local_file   - append file to a local one
     cat dfs_name                - output file to screen
     get dfs_name   [local_file] - retrieve a file
-    h[elp]                      - the present prose
-    k[ill]                      - stop local data deamons then exit
-                                  (DataManager and MetaDataManager)
+    h[elp]                      - the prose you are reading
     lmdm                        - use the local MetaDataManager (default)
+    rmdm host [port]            - use a remote MetaDataManager
     ls                          - list files
     lsac                        - list all chunks
     lslc                        - list local chunks only
     lsn                         - list nodes
-    put local_file [dfs_name]   - publish a file
     q[uit] | e[xit]             - stop this wonderful program
-    rmdm host [port]            - use a remote MetaDataManager
+    k[ill]                      - stop local data deamons then quit
+                                  (DataManager and MetaDataManager)
     """
 
 def process_commands(commands, dm, mdm, interactive = False):
@@ -476,10 +479,10 @@ if __name__ == '__main__':
         commands = " ".join(sys.argv[1:])
     dm_URI  = ("PYROLOC://localhost:" + str(data_manager_port) +
                "/data_manager")
-    logging.debug(dm_URI)
+    print dm_URI
     mdm_URI = ("PYROLOC://localhost:" + str(meta_data_manager_port) +
                "/meta_data_manager")
-    logging.debug(mdm_URI)
+    print mdm_URI
     dm  = Pyro.core.getProxyForURI(dm_URI)
     mdm = Pyro.core.getProxyForURI(mdm_URI)
     dm_already_here  = False
@@ -489,7 +492,7 @@ if __name__ == '__main__':
         mdm_already_here = True
     except Pyro.errors.ProtocolError:
         # no local MetaDataManager running
-        logging.debug("starting MDM daemon...")
+        print "starting MDM daemon..."
         pid = os.fork()
         if pid == 0: # child process
             launch_local_meta_data_manager(debug)
@@ -498,20 +501,20 @@ if __name__ == '__main__':
                         # FBR: I don't like this, it adds some unneeded
                         #      latency
     else:
-        logging.debug("MDM daemon OK")
+        print "MDM daemon OK"
     try:
         ignore = dm.started()
         dm_already_here = True
     except Pyro.errors.ProtocolError:
         # no local DataManager running
-        logging.debug("starting DM  daemon...")
+        print "starting DM  daemon..."
         pid = os.fork()
         if pid == 0: # child process
             launch_local_data_manager(debug)
     if not dm_already_here:
         time.sleep(0.1) # wait for him to enter his infinite loop
     else:
-        logging.debug("DM  daemon OK")
+        print "DM  daemon OK"
     if interactive:
         try:
             usage()
