@@ -53,10 +53,10 @@ def launch_local_meta_data_manager(debug = False):
     daemon.shutdown()
     sys.exit(0)
 
-def launch_local_data_manager(debug = False):
+def launch_local_data_manager(mdm_host, mdm_port, debug = False):
     Pyro.core.initServer()
     daemon = Pyro.core.Daemon(port = data_manager_port)
-    dm = DataManager()
+    dm = DataManager(mdm_host, mdm_port)
     daemon.connect(dm, 'data_manager') # publish object
     if not debug:
         logfile = open("/tmp/dm_log_dfs_" + os.getlogin(), 'ab')
@@ -75,7 +75,7 @@ def usage():
     WARNING: this tool is still in experimental stage...
 
     usage:
-    DataManager.py [-i] [-h mdm_host[:port]] [command [parameters][, ... ]]
+    DataManager.py [-i] [-h remote_mdm_host[:port]] [command, ...]
       -i : interactive mode
       -h : use remote MetaDataManager
     commands:
@@ -147,7 +147,7 @@ def process_commands(commands, dm, mdm, interactive = False):
     elif command in ["k","kill"]:
         dm.stop()
         mdm.stop()
-        print "sent kill command to deamons"
+        print "kill: command sent to deamons"
         sys.exit(0)
     elif command == "put":
         if argc not in [2, 3]:
@@ -186,6 +186,17 @@ def find(v, l):
     except:
         return -1
 
+# host[:port] -> (host, None|port_int)
+def decode_host_maybe_port(host_maybe_port):
+    port     = None
+    splitted = host_maybe_port.split(':')
+    host     = splitted[0]
+    try:
+        port = int(splitted[1])
+    except:
+        pass
+    return (host, port)
+
 if __name__ == '__main__':
     logging.basicConfig(level  = logging.DEBUG,
                         format = '%(asctime)s %(levelname)s %(message)s')
@@ -200,6 +211,10 @@ if __name__ == '__main__':
         remote_mdm_maybe_port = sys.argv[remote_mdm_i + 1]
         sys.argv.pop(remote_mdm_i) # -h
         sys.argv.pop(remote_mdm_i) # host[:port]
+        (host, maybe_port) = decode_host_maybe_port(remote_mdm_maybe_port)
+        mdm_host = host
+        if maybe_port:
+            mdm_port = maybe_port
     if "-i" in sys.argv:
         interactive = True
     else:
@@ -217,7 +232,7 @@ if __name__ == '__main__':
     dm_already_here  = False
     mdm_already_here = False
     try:
-        ignore = mdm.started()
+        mdm.started()
         mdm_already_here = True
     except Pyro.errors.ProtocolError:
         # no local MetaDataManager running
@@ -232,14 +247,14 @@ if __name__ == '__main__':
     else:
         print "MDM daemon OK"
     try:
-        ignore = dm.started()
+        dm.started()
         dm_already_here = True
     except Pyro.errors.ProtocolError:
         # no local DataManager running
         print "starting DM  daemon..."
         pid = os.fork()
         if pid == 0: # child process
-            launch_local_data_manager(debug)
+            launch_local_data_manager(mdm_host, mdm_port, debug)
     if not dm_already_here:
         time.sleep(0.1) # wait for him to enter his infinite loop
     else:
