@@ -32,10 +32,7 @@ from tempfile        import TemporaryFile
 from MetaDataManager import MetaDataManager
 from Pyro.errors     import NamingError
 
-# FBR: * logs should go to a local file?
-#        Sure but only when not in interactive mode
-#      * make commands listing output cleaner and more readable
-
+# FBR: * make commands listing output cleaner and more readable
 #      * list md5 command
 #      * mget, mput and muput
 
