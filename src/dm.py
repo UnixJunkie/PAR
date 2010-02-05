@@ -81,11 +81,12 @@ def usage():
                                   and published, they are verified when you get
                                   chunks over the network)
     uput local_file [dfs_name]  - unsafe put (no checksums)
-    mput  local_dir [dfs_name]  - multiple (recursive) put
-    umput local_dir [dfs_name]  - multiple (recursive) unsafe put
-    app dfs_name    local_file  - append file to a local one
-    cat dfs_name                - output file to screen
-    get dfs_name  [local_file]  - retrieve a file
+    mput  local_dir [dfs_dir]   - multiple (recursive) put
+    umput local_dir [dfs_dir]   - multiple (recursive) unsafe put
+    app  dfs_name   local_file  - append file to a local one
+    cat  dfs_name               - output file to screen
+    get  dfs_name [local_file]  - retrieve a file
+    mget dfs_dir  [local_dir]   - retrieve a directory, NOT IMPLEMENTED
     h[elp]                      - the prose you are reading
     lmdm                        - use the local MetaDataManager (default)
     rmdm host [port]            - use a remote MetaDataManager
