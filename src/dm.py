@@ -29,6 +29,7 @@ from tarfile         import TarFile
 from tempfile        import TemporaryFile
 
 from MetaDataManager import MetaDataManager
+from DataManager     import DataManager
 from Pyro.errors     import NamingError
 
 #pyro_default_port     = 7766
