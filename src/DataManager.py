@@ -469,14 +469,15 @@ def process_commands(commands, dm, mdm, interactive = False):
         if interactive: usage()
 
 if __name__ == '__main__':
-    debug = False
     logging.basicConfig(level  = logging.DEBUG,
                         format = '%(asctime)s %(levelname)s %(message)s')
-    interactive = False
+    commands_start = 1
+    debug          = False
+    interactive    = False
     if "-i" in sys.argv:
         interactive = True
     else:
-        commands = " ".join(sys.argv[1:])
+        commands = " ".join(sys.argv[commands_start:])
     dm_URI  = ("PYROLOC://localhost:" + str(data_manager_port) +
                "/data_manager")
     print dm_URI
