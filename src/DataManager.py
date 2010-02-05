@@ -253,7 +253,7 @@ class DataManager(Pyro.core.ObjBase):
         remote_chunks = []
         self.data_store_lock.acquire()
         if self.debug: print "self.data_store_lock ACK"
-        for c in meta_info.get_chunk_names():
+        for (c, _) in meta_info.get_chunk_names():
             if self.local_chunks.get(c) == None:
                 remote_chunks.append(c)
         self.data_store_lock.release()
