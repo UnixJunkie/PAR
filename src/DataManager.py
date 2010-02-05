@@ -32,7 +32,7 @@ from tempfile        import TemporaryFile
 from MetaDataManager import MetaDataManager
 from Pyro.errors     import NamingError
 
-# FBR: * mget, mput and muput
+# FBR: * mget
 
 #pyro_default_port     = 7766
 data_manager_port      = 7767
@@ -202,6 +202,20 @@ class DataManager(Pyro.core.ObjBase):
             except:
                 logging.exception("problem while reading " + filename)
             input_file.close()
+
+    # multiple put (recursive put, for directories)
+    def mput(self, directory, dfs_path = None, verify = True):
+        if not os.path.isdir(directory):
+            logging.error("no such directory: " + directory)
+        else:
+            if dfs_path == None:
+                dfs_path = directory
+            for root, dirs, files in os.walk(directory):
+                for f in files:
+                    self.put(os.path.join(root, f),
+                             os.path.join(root.replace(directory, dfs_path, 1),
+                                          f),
+                             verify)
 
     def download_chunks(self, chunk_and_sums):
         res = True
