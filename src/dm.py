@@ -72,7 +72,7 @@ def launch_local_data_manager(debug = False):
 
 def usage():
     print """usage:
-    DataManager.py [-i] [-h mdm_host[:port]] [command [parameters]]
+    DataManager.py [-i] [-h mdm_host[:port]] [command [parameters][, ... ]]
       -i : interactive mode
       -h : use remote MetaDataManager
     commands:
@@ -189,6 +189,11 @@ if __name__ == '__main__':
     debug          = False
     interactive    = False
     remote_mdm     = False
+    remote_mdm_i   = find("-h", sys.argv)
+    if remote_mdm_i != -1:
+        remote_mdm_maybe_port = sys.argv[remote_mdm_i + 1]
+        sys.argv.pop(remote_mdm_i) # -h
+        sys.argv.pop(remote_mdm_i) # host[:port]
     if "-i" in sys.argv:
         interactive = True
     else:
