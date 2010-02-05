@@ -49,7 +49,7 @@ class Master(Pyro.core.ObjBase):
         self.no_more_jobs   = False
 
     def get_work(self, previous_result = None):
-        if previous_result != None:
+        if previous_result:
             self.results_queue.put(previous_result)
         res = None
         self.lock.acquire()
@@ -161,17 +161,17 @@ if __name__ == '__main__':
         (options, optargs)    = my_parser.parse_args()
         show_progress         = options.is_verbose
         commands_file_option  = options.commands_file
-        read_from_file        = commands_file_option != None
+        read_from_file        = commands_file_option
         output_file_option    = options.output_file
-        output_to_file        = output_file_option != None
+        output_to_file        = output_file_option
         remote_server_name    = options.server_name
-        connect_to_server     = remote_server_name != None
+        connect_to_server     = remote_server_name
         nb_workers            = options.nb_local_workers
         nb_threads            = get_nb_procs() # automatic detection
-        has_nb_workers_option = nb_workers != None
+        has_nb_workers_option = nb_workers
         post_proc_option      = options.post_proc
         post_proc_fun         = None
-        has_post_proc_option  = post_proc_option != None
+        has_post_proc_option  = post_proc_option
         is_server             = options.is_server
         daemon                = None
         if output_to_file:
