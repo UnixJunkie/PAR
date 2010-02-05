@@ -28,7 +28,7 @@ import Pyro.core, Pyro.naming
 from MetaData import MetaData
 
 class MetaDataManager(Pyro.core.ObjBase):
-    
+
     def __init__(self, debug = False):
         Pyro.core.ObjBase.__init__(self)
         self.debug = debug
@@ -46,29 +46,31 @@ class MetaDataManager(Pyro.core.ObjBase):
         self.pyro_daemon_loop_cond = True
 
     def ls_files(self):
-        res = []
         self.files_lock.acquire()
         if self.debug: print "self.files_lock ACK"
-        for v in self.files.values():
-            res.append(v.get_uniq_ID())
+        values = list(self.files.values())
         self.files_lock.release()
         if self.debug: print "self.files_lock REL"
+        res = []
+        for v in values:
+            res.append(v.get_uniq_ID())
         return res
 
     def ls_chunks(self):
-        res = []
         self.chunks_lock.acquire()
         if self.debug: print "self.chunks_lock ACK"
-        for v in self.chunks.keys():
-            res.append(v + ':' + str(self.chunks[v]))
+        keys = list(self.chunks.keys())
         self.chunks_lock.release()
         if self.debug: print "self.chunks_lock REL"
+        res = []
+        for v in keys:
+            res.append(v + ':' + str(self.chunks[v]))
         return res
 
     def ls_nodes(self):
         self.chunks_lock.acquire()
         if self.debug: print "self.chunks_lock ACK"
-        res = self.nodes.keys()
+        res = list(self.nodes.keys())
         self.chunks_lock.release()
         if self.debug: print "self.chunks_lock REL"
         return res
