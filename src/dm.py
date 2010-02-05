@@ -21,7 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ---
 """
 
-import logging, os, random, socket, sys, stat, thread, time
+import logging, os, sys, time
 
 import Pyro.core, Pyro.naming
 
