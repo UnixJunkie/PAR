@@ -169,15 +169,6 @@ class DataManager(Pyro.core.ObjBase):
     def got_chunk(self):
         self.chunk_server_lock.release()
 
-    def ls_local_chunks(self):
-        res = []
-        self.data_store_lock.acquire()
-        if self.debug: print "self.data_store_lock ACK"
-        res = self.local_chunks.keys()
-        self.data_store_lock.release()
-        if self.debug: print "self.data_store_lock REL"
-        return res
-
     # publish a local file into the DFS
     # the verify parameter controls usage of checksums
     def put(self, filename, dfs_path = None, verify = True):
@@ -333,11 +324,23 @@ class DataManager(Pyro.core.ObjBase):
     def ls_files(self):
         return self.mdm.ls_files()
 
+    def ls_nodes(self):
+        return self.mdm.ls_nodes()
+
+    def ls_local_chunks(self):
+        res = []
+        self.data_store_lock.acquire()
+        if self.debug: print "self.data_store_lock ACK"
+        res = list(self.local_chunks.keys())
+        self.data_store_lock.release()
+        if self.debug: print "self.data_store_lock REL"
+        return res
+
     def ls_all_chunks(self):
         return self.mdm.ls_chunks()
 
-    def ls_nodes(self):
-        return self.mdm.ls_nodes()
+    def ls_all_chunk_and_sums(self):
+        return self.mdm.ls_chunk_and_sums()
 
     def started(self):
         return True
