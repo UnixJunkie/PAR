@@ -81,6 +81,8 @@ def usage():
                                   and published, they are verified when you get
                                   chunks over the network)
     uput local_file [dfs_name]  - unsafe put (no checksums)
+    mput  local_dir [dfs_name]  - multiple (recursive) put
+    umput local_dir [dfs_name]  - multiple (recursive) unsafe put
     app dfs_name    local_file  - append file to a local one
     cat dfs_name                - output file to screen
     get dfs_name  [local_file]  - retrieve a file
@@ -145,7 +147,8 @@ def process_commands(commands, dm, interactive = False):
         print "all chunk and checksums:"
         for l in dm.ls_all_chunk_and_sums():
             for (c, s) in l:
-                print " " + s + ':' + c
+                if s: print "  " + s + ':' + c
+                else: print "  _:" + c
     elif command == "lslc":
         print "local chunks:"
         for c in dm.ls_local_chunks():
@@ -166,8 +169,17 @@ def process_commands(commands, dm, interactive = False):
         else:
             if command == "uput":
                 dm.put(param_1, param_2, False)
-            else:
+            else: # put
                 dm.put(param_1, param_2, True)
+    elif command in ["mput", "umput"]:
+        if argc not in [2, 3]:
+            logging.error("need one or two params")
+            if interactive: usage()
+        else:
+            if command == "umput":
+                dm.mput(param_1, param_2, False)
+            else: # mput
+                dm.mput(param_1, param_2, True)
     elif command == "get":
         if argc not in [2, 3]:
             logging.error("need one or two params")
