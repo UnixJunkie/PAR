@@ -35,10 +35,10 @@ from Pyro.errors     import NamingError
 # FBR: * logs should go to a local file?
 #        Sure but only when not in interactive mode
 #      * make commands listing output cleaner and more readable
+
 #      * stop only local daemons
 #      * list md5 command
-#      * mget and mput
-#      * uput: unsafe_put
+#      * mget, mput and muput
 
 #pyro_default_port     = 7766
 data_manager_port      = 7767
@@ -183,7 +183,8 @@ class DataManager(Pyro.core.ObjBase):
         return res
 
     # publish a local file into the DFS
-    def put(self, filename, dfs_path = None, verify = False):
+    # the verify parameter controls usage of checksums
+    def put(self, filename, dfs_path = None, verify = True):
         if not os.path.isfile(filename):
             logging.error("no such file: " + filename)
         else:
@@ -207,7 +208,6 @@ class DataManager(Pyro.core.ObjBase):
                     if verify:
                         md5_sum = md5.new(read_buff)
                         checksums.append(md5_sum.hexdigest())
-                        print md5_sum.hexdigest() # debug !!!
                     self.add_local_chunk(chunk_index, dfs_path, temp_file)
                     temp_file.close()
                     chunk_index += 1
@@ -242,7 +242,6 @@ class DataManager(Pyro.core.ObjBase):
                         verif = None
                         if c_sum:
                             verif = md5.new(data).hexdigest()
-                            print verif # debug
                         if verif == c_sum:
                             downloaded = True
                             temp_file = TemporaryFile()
