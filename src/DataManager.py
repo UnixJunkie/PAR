@@ -32,9 +32,7 @@ from tempfile        import TemporaryFile
 from MetaDataManager import MetaDataManager
 from Pyro.errors     import NamingError
 
-# FBR: * make commands listing output cleaner and more readable
-#      * list md5 command
-#      * mget, mput and muput
+# FBR: * mget, mput and muput
 
 #pyro_default_port     = 7766
 data_manager_port      = 7767
