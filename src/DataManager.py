@@ -35,6 +35,10 @@ from Pyro.errors     import NamingError
 # FBR: * logs should go to a local file?
 #        Sure but only when not in interactive mode
 #      * make commands listing output cleaner and more readable
+#      * stop only local daemons
+#      * list md5 command
+#      * mget and mput
+#      * uput: unsafe_put
 
 #pyro_default_port     = 7766
 data_manager_port      = 7767
