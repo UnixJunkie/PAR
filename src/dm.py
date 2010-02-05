@@ -145,9 +145,9 @@ def process_commands(commands, dm, mdm, interactive = False):
         print "nodes:"
         print dm.ls_nodes()
     elif command in ["k","kill"]:
+        dm.stop_local_mdm()
         dm.stop()
-        mdm.stop()
-        print "kill: command sent to deamons"
+        print "kill: command sent to local deamons"
         sys.exit(0)
     elif command in ["put", "uput"]:
         if argc not in [2, 3]:
