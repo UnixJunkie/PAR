@@ -71,10 +71,7 @@ def launch_local_data_manager(mdm_host, mdm_port, debug = False):
     sys.exit(0)
 
 def usage():
-    print """
-    WARNING: this tool is still in experimental stage...
-
-    usage:
+    print """usage:
     DataManager.py [-i] [-h remote_mdm_host[:port]] [command, ...]
       -i : interactive mode
       -h : use remote MetaDataManager
@@ -200,6 +197,7 @@ def decode_host_maybe_port(host_maybe_port):
 if __name__ == '__main__':
     logging.basicConfig(level  = logging.DEBUG,
                         format = '%(asctime)s %(levelname)s %(message)s')
+    print "WARNING: this tool is EXPERIMENTAL..."
     commands_start = 1
     debug          = False
     interactive    = False
