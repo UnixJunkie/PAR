@@ -175,12 +175,20 @@ def process_commands(commands, dm, mdm, interactive = False):
         logging.error("unknown command: " + command)
         if interactive: usage()
 
+# index of value v in list l, -1 if not found
+def find(v, l):
+    try:
+        return l.index(v)
+    except:
+        return -1
+
 if __name__ == '__main__':
     logging.basicConfig(level  = logging.DEBUG,
                         format = '%(asctime)s %(levelname)s %(message)s')
     commands_start = 1
     debug          = False
     interactive    = False
+    remote_mdm     = False
     if "-i" in sys.argv:
         interactive = True
     else:
