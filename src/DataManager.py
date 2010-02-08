@@ -217,7 +217,7 @@ class DataManager(Pyro.core.ObjBase):
                                           f),
                              verify)
 
-    def download_chunks(self, chunk_and_sums):
+    def download_chunks(self, chunk_and_sums, only_peek = False):
         res = True
         while len(chunk_and_sums) > 0:
             (c, c_sum) = chunk_and_sums.pop(0)
@@ -250,8 +250,9 @@ class DataManager(Pyro.core.ObjBase):
                             (idx, dfs_path) = self.decode_chunk_name(c)
                             self.add_local_chunk(idx, dfs_path, temp_file)
                             temp_file.close()
-                            self.mdm.update_add_node(dfs_path, idx,
-                                                     self.hostname)
+                            if not only_peek:
+                                self.mdm.update_add_node(dfs_path, idx,
+                                                         self.hostname)
                             break
                         else:
                             logging.error("md5 differ for chunk: "
@@ -280,7 +281,7 @@ class DataManager(Pyro.core.ObjBase):
 
     # download a DFS file and dump it to a local file
     def get(self, dfs_path, fs_output_path, append_mode = False,
-            nb_trials = 3):
+            nb_trials = 3, only_peek = False):
         res = True
         if fs_output_path == None:
             fs_output_path = dfs_path
@@ -296,7 +297,8 @@ class DataManager(Pyro.core.ObjBase):
                 # shuffle is here to increase pipelining and parallelization
                 # of transfers
                 random.shuffle(remote_chunks)
-                all_chunks_available = self.download_chunks(remote_chunks)
+                all_chunks_available = self.download_chunks(remote_chunks,
+                                                            only_peek)
                 if self.debug: print all_chunks_available
                 if all_chunks_available:
                     break
