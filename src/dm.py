@@ -86,6 +86,8 @@ def usage():
     app  dfs_name   local_file  - append file to a local one
     cat  dfs_name               - output file to screen
     get  dfs_name [local_file]  - retrieve a file
+    peek dfs_name [local_file]  - retrieve a file but don't publish that you
+                                  have downloaded its chunks (selfish get)
     fget dfs_name [local_file]  - force retrieving a file (many trials)
     mget dfs_dir  [local_dir]   - retrieve a directory, NOT IMPLEMENTED
     h[elp]                      - the prose you are reading
@@ -194,6 +196,12 @@ def process_commands(commands, dm, interactive = False):
             if interactive: usage()
         else:
             dm.get(param_1, param_2, False, 1000000)
+    elif command == "peek":
+        if argc not in [2, 3]:
+            logging.error("need one or two params")
+            if interactive: usage()
+        else:
+            dm.get(param_1, param_2, False, 1000000, True)
     elif command == "app":
         if argc not in [3]:
             logging.error("need two params")
@@ -233,7 +241,7 @@ def decode_host_maybe_port(host_maybe_port):
 if __name__ == '__main__':
     logging.basicConfig(level  = logging.DEBUG,
                         format = '%(asctime)s %(levelname)s %(message)s')
-    print "WARNING: this tool is EXPERIMENTAL..."
+    #print "WARNING: this tool is EXPERIMENTAL..."
     commands_start = 1
     debug          = False
     interactive    = False
