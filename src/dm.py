@@ -75,31 +75,44 @@ def usage():
     DataManager.py [-i] [-h remote_mdm_host[:port]] [command, ...]
       -i : interactive mode
       -h : use remote MetaDataManager
-    commands:
-    ---
-    put  local_file [dfs_name]  - publish a file (chunk's md5sums are computed
-                                  and published, they are verified when you get
-                                  chunks over the network)
-    uput local_file [dfs_name]  - unsafe put (no checksums)
-    mput  local_dir [dfs_dir]   - multiple (recursive) put
-    umput local_dir [dfs_dir]   - multiple (recursive) unsafe put
-    app  dfs_name   local_file  - append file to a local one
-    cat  dfs_name               - output file to screen
-    get  dfs_name [local_file]  - retrieve a file
-    peek dfs_name [local_file]  - retrieve a file but don't publish that you
-                                  have downloaded its chunks (selfish get)
-    mget dfs_dir  [local_dir]   - retrieve a directory, NOT IMPLEMENTED
-    h[elp]                      - the prose you are reading
-    lmdm                        - use the local MetaDataManager (default)
-    rmdm host [port]            - use a remote MetaDataManager
-    ls                          - list files
-    lsac                        - list all chunks
-    lsacs                       - list all chunk and checksums
-    lslc                        - list local chunks only
-    lsn                         - list nodes
-    q[uit] | e[xit]             - stop this wonderful program
-    k[ill]                      - stop local data deamons then quit
-                                  (DataManager and MetaDataManager)
+
+    Basic commands:
+    ---------------
+    put    local_file [dfs_name]    - publish a file (chunk's md5sums are
+                                      computed and published, they are verified
+                                      when you get chunks over the network)
+    mput   local_dir  [dfs_dir]     - multiple put (recursive)
+    cat    dfs_name                 - output file to screen
+    app    dfs_name   local_file    - append file to a local one
+    get    dfs_name   [local_file]  - retrieve a file
+    mget   dfs_dir    [local_dir]   - retrieve a directory, NOT IMPLEMENTED
+    h[elp]                          - the prose you are reading
+    lmdm                            - use the local MetaDataManager (default)
+    rmdm host [port]                - use a remote MetaDataManager
+    ls                              - list files
+    q[uit] | e[xit]                 - stop this wonderful program
+    k[ill]                          - stop local data deamons then quit
+                                      (DataManager and MetaDataManager)
+
+    Advanced commands:
+    ------------------
+    uput  local_file [dfs_name]     - unsafe put (no checksums)
+    umput local_dir  [dfs_dir]      - unsafe multiple put
+    nput  local_dir  [dfs_dir]    n - node put: local put then remote get
+                                      from node n NOT IMPLEMENTED
+    nmput local_dir  [dfs_dir]    n - node mput, local mput then remote mget
+                                      from node n, NOT IMPLEMENTED
+    peek  dfs_name   [local_file]   - retrieve a file but don't publish that
+                                      you have downloaded its chunks
+                                      (selfish get)
+    mpeek dfs_name   [local_file]   - selfish mget
+
+    Hacker commands:
+    ----------------
+    lsac                            - list all chunks
+    lsacs                           - list all chunk and checksums
+    lslc                            - list local chunks only
+    lsn                             - list nodes holding chunks
     """
 
 def process_commands(commands, dm, interactive = False):
