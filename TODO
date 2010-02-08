@@ -6,7 +6,6 @@ MUST DO
   mget
   nput: local put then specified node does a get, could be used to save results
         from transient nodes to permanent ones
-  fget: force get, try getting until you get the file (possibly infinite loop)
 * the get command and its dirty lock can be done safer if we use an object
   provided by the getter, then in the same layer we can do everything
 * allow to compress then put, almost same system than using checksums
