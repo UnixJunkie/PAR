@@ -281,7 +281,7 @@ class DataManager(Pyro.core.ObjBase):
 
     # download a DFS file and dump it to a local file
     def get(self, dfs_path, fs_output_path, append_mode = False,
-            nb_trials = 3, only_peek = False):
+            only_peek = False):
         res = True
         if fs_output_path == None:
             fs_output_path = dfs_path
@@ -290,8 +290,9 @@ class DataManager(Pyro.core.ObjBase):
             logging.error("no such file: " + dfs_path)
         else:
             all_chunks_available = False
-            for trial in range(nb_trials): # try hard to get it
-                if self.debug: print "trial:" + str(trial)
+            trial_num = 0
+            while not all_chunks_available:
+                if self.debug: print "trial:" + str(trial_num)
                 remote_chunks = self.find_remote_chunks(meta_info)
                 if self.debug: print remote_chunks
                 # shuffle is here to increase pipelining and parallelization
@@ -299,9 +300,7 @@ class DataManager(Pyro.core.ObjBase):
                 random.shuffle(remote_chunks)
                 all_chunks_available = self.download_chunks(remote_chunks,
                                                             only_peek)
-                if self.debug: print all_chunks_available
-                if all_chunks_available:
-                    break
+                trial_num += 1
             if all_chunks_available:
                 # dump all chunks from local store to fs_output_path and
                 # in the right order please
