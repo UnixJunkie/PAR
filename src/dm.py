@@ -88,7 +88,6 @@ def usage():
     get  dfs_name [local_file]  - retrieve a file
     peek dfs_name [local_file]  - retrieve a file but don't publish that you
                                   have downloaded its chunks (selfish get)
-    fget dfs_name [local_file]  - force retrieving a file (many trials)
     mget dfs_dir  [local_dir]   - retrieve a directory, NOT IMPLEMENTED
     h[elp]                      - the prose you are reading
     lmdm                        - use the local MetaDataManager (default)
@@ -190,18 +189,12 @@ def process_commands(commands, dm, interactive = False):
             if interactive: usage()
         else:
             dm.get(param_1, param_2)
-    elif command == "fget":
-        if argc not in [2, 3]:
-            logging.error("need one or two params")
-            if interactive: usage()
-        else:
-            dm.get(param_1, param_2, False, 1000000)
     elif command == "peek":
         if argc not in [2, 3]:
             logging.error("need one or two params")
             if interactive: usage()
         else:
-            dm.get(param_1, param_2, False, 1000000, True)
+            dm.get(param_1, param_2, False, True)
     elif command == "app":
         if argc not in [3]:
             logging.error("need two params")
