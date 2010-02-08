@@ -279,7 +279,8 @@ class DataManager(Pyro.core.ObjBase):
         return remote_chunks
 
     # download a DFS file and dump it to a local file
-    def get(self, dfs_path, fs_output_path, append_mode = False):
+    def get(self, dfs_path, fs_output_path, append_mode = False,
+            nb_trials = 3):
         res = True
         if fs_output_path == None:
             fs_output_path = dfs_path
@@ -288,7 +289,7 @@ class DataManager(Pyro.core.ObjBase):
             logging.error("no such file: " + dfs_path)
         else:
             all_chunks_available = False
-            for trial in range(3): # try hard
+            for trial in range(nb_trials): # try hard to get it
                 if self.debug: print "trial:" + str(trial)
                 remote_chunks = self.find_remote_chunks(meta_info)
                 if self.debug: print remote_chunks
