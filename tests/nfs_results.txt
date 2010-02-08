@@ -1,0 +1,13 @@
+# checkout time from server to client (averaged on 3 diff clients)
+#size(M) t(s)
+1 .09
+2 .18
+4 .36
+8 .72
+16 1.44
+32 2.88
+64 5.76
+128 11.52
+256 23.06
+512 46.10
+1024 92.35
