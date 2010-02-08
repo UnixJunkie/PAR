@@ -21,7 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ---
 """
 
-import logging, os, sys, time
+import commands, logging, os, sys, time
 
 import Pyro.core, Pyro.naming
 
@@ -107,6 +107,7 @@ def usage():
                                       you have downloaded its chunks
                                       (selfish get)
     mpeek dfs_name   [local_file]   - selfish mget
+    !COMMAND                        - execute local shell command COMMAND
 
     Hacker commands:
     ----------------
@@ -116,8 +117,8 @@ def usage():
     lsn                             - list nodes holding chunks
     """
 
-def process_commands(commands, dm, interactive = False):
-    splitted = commands.split()
+def process_commands(commands_list, dm, interactive = False):
+    splitted = commands_list.split()
     argc     = len(splitted)
     command  = splitted[0]
     param_1  = None
@@ -129,7 +130,9 @@ def process_commands(commands, dm, interactive = False):
         param_2 = splitted[2]
     if argc >= 4:
         param_3 = splitted[3]
-    if command in ["help", "h"]:
+    if commands_list.startswith('!'): # run local shell command
+        print commands.getoutput(commands_list[1:])
+    elif command in ["help", "h"]:
         usage()
     elif command == "lmdm":
         dm.use_local_mdm()
