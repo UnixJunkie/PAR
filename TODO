@@ -1,5 +1,7 @@
 MUST DO
 -------
+* the get command and its dirty lock can be done safer if we use an object
+  provided by the getter, then in the same layer we can do everything
 * allow recursive get for directories in DataManager: mget
 * we may need some smart commands:
   peek/mpeek: get/mget without publishing local chunks (to use on transient
