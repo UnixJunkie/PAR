@@ -72,6 +72,7 @@ def launch_local_data_manager(mdm_host, mdm_port, debug = False):
 
 def usage():
     print """usage:
+
     DataManager.py [-i] [-h remote_mdm_host[:port]] [command, ...]
       -i : interactive mode
       -h : use remote MetaDataManager
@@ -98,8 +99,8 @@ def usage():
     ------------------
     uput  local_file [dfs_name]     - unsafe put (no checksums)
     umput local_dir  [dfs_dir]      - unsafe multiple put
-    nput  local_dir  [dfs_dir]    n - node put: local put then remote get
-                                      from node n NOT IMPLEMENTED
+    nput  local_dir  dfs_dir      n - node put: local put then remote get
+                                      from node n
     nmput local_dir  [dfs_dir]    n - node mput, local mput then remote mget
                                       from node n, NOT IMPLEMENTED
     peek  dfs_name   [local_file]   - retrieve a file but don't publish that
@@ -117,16 +118,16 @@ def usage():
 
 def process_commands(commands, dm, interactive = False):
     splitted = commands.split()
-    argc = len(splitted)
-    command = splitted[0]
-    param_1 = None
-    if argc in [2, 3]:
+    argc     = len(splitted)
+    command  = splitted[0]
+    param_1  = None
+    param_2  = None
+    param_3  = None
+    if argc >= 2:
         param_1 = splitted[1]
-    param_2 = None
-    if argc == 3:
+    if argc >= 3:
         param_2 = splitted[2]
-    param_3 = None
-    if argc == 3:
+    if argc >= 4:
         param_3 = splitted[3]
     if command in ["help", "h"]:
         usage()
@@ -142,7 +143,6 @@ def process_commands(commands, dm, interactive = False):
                 rmdm_OK = dm.use_remote_mdm(param_1, param_2)
             else:
                 logging.error("need one or two params")
-                if interactive: usage()
             if rmdm_OK:
                 print "connected to remote MDM"
             else:
@@ -184,28 +184,43 @@ def process_commands(commands, dm, interactive = False):
     elif command in ["put", "uput"]:
         if argc not in [2, 3]:
             logging.error("need one or two params")
-            if interactive: usage()
         else:
             if command == "uput":
                 dm.put(param_1, param_2, False)
             else: # put
-                dm.put(param_1, param_2, True)
+                dm.put(param_1, param_2)
     elif command in ["nput"]:
-        if argc not in [3, 4]:
-            logging.error("need two or three params")
-            if interactive: usage()
+        if argc != 4:
+            logging.error("need three params")
         else:
-            rdm_URI = ("PYROLOC://" + param_3 + ":" + str(data_manager_port) +
-                       "/data_manager")
-            print rdm_URI
-            rdm  = Pyro.core.getProxyForURI(rdm_URI)
-            rdm.started()
-            #dm.put(param_1, param_2, True)
-            #rdm.get(param_2, param_1)
+            rdm_URI  = ("PYROLOC://" + param_3 + ":" +
+                        str(data_manager_port) + "/data_manager")
+            rmdm_URI = ("PYROLOC://" + param_3 + ":" +
+                        str(meta_data_manager_port) + "/meta_data_manager")
+            rdm      = None
+            rmdm     = None
+            try:
+                rdm  = Pyro.core.getProxyForURI(rdm_URI)
+                rmdm = Pyro.core.getProxyForURI(rmdm_URI)
+            except Pyro.errors.URIError:
+                logging.error("unknown host: " + param_3)
+            rdm_started  = False
+            rmdm_started = False
+            try:
+                rdm_started  = rdm.started()
+                rmdm_started = rmdm.started()
+            except:
+                pass
+            if not rmdm_started:
+                logging.error("MDM not running on: " + param_3)
+            if not rdm_started:
+                logging.error("DM not running on: " + param_3)
+            if rdm_started and rmdm_started:
+                dm.put(param_1, param_2, remote_mdm = rmdm)
+                rdm.get(param_2, param_1)
     elif command in ["mput", "umput"]:
         if argc not in [2, 3]:
             logging.error("need one or two params")
-            if interactive: usage()
         else:
             if command == "umput":
                 dm.mput(param_1, param_2, False)
@@ -214,25 +229,21 @@ def process_commands(commands, dm, interactive = False):
     elif command == "get":
         if argc not in [2, 3]:
             logging.error("need one or two params")
-            if interactive: usage()
         else:
             dm.get(param_1, param_2)
     elif command == "peek":
         if argc not in [2, 3]:
             logging.error("need one or two params")
-            if interactive: usage()
         else:
             dm.get(param_1, param_2, False, True)
     elif command == "app":
         if argc not in [3]:
             logging.error("need two params")
-            if interactive: usage()
         else:
             dm.get(param_1, param_2, True)
     elif command == "cat":
         if argc not in [2]:
             logging.error("need one param")
-            if interactive: usage()
         else:
             dm.get(param_1, "/dev/stdout")
     elif command in ["q","quit", "e", "exit"]:
