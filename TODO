@@ -1,14 +1,14 @@
 MUST DO
 -------
-* the get command and its dirty lock can be done safer if we use an object
-  provided by the getter, then in the same layer we can do everything
-* allow recursive get for directories in DataManager: mget
+
 * we may need some smart commands:
-  peek/mpeek: get/mget without publishing local chunks (to use on transient
-  nodes as long as we don't support data node failure)
+  peek/mpeek: get/mget without publishing local chunks
+  mget
   nput: local put then specified node does a get, could be used to save results
         from transient nodes to permanent ones
   fget: force get, try getting until you get the file (possibly infinite loop)
+* the get command and its dirty lock can be done safer if we use an object
+  provided by the getter, then in the same layer we can do everything
 * allow to compress then put, almost same system than using checksums
 * find a faster way to wait for the daemon to be started?
 * start processing results before workers are finished
