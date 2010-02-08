@@ -99,9 +99,9 @@ def usage():
     ------------------
     uput  local_file [dfs_name]     - unsafe put (no checksums)
     umput local_dir  [dfs_dir]      - unsafe multiple put
-    nput  local_dir  dfs_dir      n - node put: local put then remote get
+    nput  local_dir  dfs_dir   n    - node put: local put then remote get
                                       from node n
-    nmput local_dir  [dfs_dir]    n - node mput, local mput then remote mget
+    nmput local_dir  [dfs_dir] n    - node mput, local mput then remote mget
                                       from node n, NOT IMPLEMENTED
     peek  dfs_name   [local_file]   - retrieve a file but don't publish that
                                       you have downloaded its chunks
@@ -113,7 +113,7 @@ def usage():
     ----------------
     lsac                            - list all chunks
     lsacs                           - list all chunk and checksums
-    lslc                            - list local chunks only
+    lslc                            - list local chunks
     lsn                             - list nodes holding chunks
     """
 
