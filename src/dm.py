@@ -125,6 +125,9 @@ def process_commands(commands, dm, interactive = False):
     param_2 = None
     if argc == 3:
         param_2 = splitted[2]
+    param_3 = None
+    if argc == 3:
+        param_3 = splitted[3]
     if command in ["help", "h"]:
         usage()
     elif command == "lmdm":
@@ -187,6 +190,18 @@ def process_commands(commands, dm, interactive = False):
                 dm.put(param_1, param_2, False)
             else: # put
                 dm.put(param_1, param_2, True)
+    elif command in ["nput"]:
+        if argc not in [3, 4]:
+            logging.error("need two or three params")
+            if interactive: usage()
+        else:
+            rdm_URI = ("PYROLOC://" + param_3 + ":" + str(data_manager_port) +
+                       "/data_manager")
+            print rdm_URI
+            rdm  = Pyro.core.getProxyForURI(rdm_URI)
+            rdm.started()
+            #dm.put(param_1, param_2, True)
+            #rdm.get(param_2, param_1)
     elif command in ["mput", "umput"]:
         if argc not in [2, 3]:
             logging.error("need one or two params")
@@ -256,6 +271,7 @@ if __name__ == '__main__':
     mdm_port       = meta_data_manager_port
     remote_mdm_i   = find("-h", sys.argv)
     if remote_mdm_i != -1:
+        remote_mdm = True
         remote_mdm_maybe_port = sys.argv[remote_mdm_i + 1]
         sys.argv.pop(remote_mdm_i) # -h
         sys.argv.pop(remote_mdm_i) # host[:port]
@@ -307,6 +323,8 @@ if __name__ == '__main__':
         time.sleep(0.1) # wait for him to enter his infinite loop
     else:
         print "DM  daemon OK"
+    if remote_mdm:
+        dm.use_remote_mdm(mdm_host, mdm_port)
     if interactive:
         try:
             usage()
