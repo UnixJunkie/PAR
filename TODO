@@ -1,11 +1,12 @@
 MUST DO
 -------
-* add checksum verifications of chunks once they are downloaded, before
-  putting them in your local store
-  add this info when you publish one (md5 is enough and faster than sha1)
-* allow recursive put and get for directories in DataManager
-  mput/mget?
-* allow commands sequence to be sent to the DataManager (batch case use)
+* allow recursive get for directories in DataManager: mget
+* we may need some smart commands:
+  peek/mpeek: get/mget without publishing local chunks (to use on transient
+  nodes as long as we don't support data node failure)
+  nput: local put then specified node does a get, could be used to save results
+        from transient nodes to permanent ones
+* allow to compress then put, almost same system than using checksums
 * find a faster way to wait for the daemon to be started?
 * start processing results before workers are finished
   do we really need locks in worker threads?
