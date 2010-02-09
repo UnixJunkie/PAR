@@ -25,7 +25,6 @@ import commands, logging, os, sys, time
 
 import Pyro.core, Pyro.naming
 
-from tarfile         import TarFile
 from tempfile        import TemporaryFile
 
 from MetaDataManager import MetaDataManager
