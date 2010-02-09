@@ -1,4 +1,4 @@
-#!/bin/env python
+#!/usr/bin/env python
 
 """
 Copyright (C) 2009, 2010, Zhang Initiative Research Unit,
