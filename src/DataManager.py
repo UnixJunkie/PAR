@@ -41,7 +41,7 @@ class DataManager(Pyro.core.ObjBase):
 
     def __init__(self,
                  mdm_host = "localhost", mdm_port = meta_data_manager_port,
-                 debug = False):
+                 debug = False, profiling = False):
 
         Pyro.core.ObjBase.__init__(self)
         self.debug = debug
@@ -82,7 +82,10 @@ class DataManager(Pyro.core.ObjBase):
         except:
             logging.exception("can't create or write to: " + self.storage_file)
             sys.exit(0)
-        self.use_remote_mdm(mdm_host, mdm_port)
+        if profiling:
+            self.mdm = MetaDataManager()
+        else:
+            self.use_remote_mdm(mdm_host, mdm_port)
 
     # change MetaDataManager
     def use_remote_mdm(self, host, port = meta_data_manager_port):
