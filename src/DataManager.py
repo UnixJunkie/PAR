@@ -25,9 +25,6 @@ import logging, md5, os, random, socket, sys, stat, thread, time
 
 import Pyro.core, Pyro.naming
 
-from tarfile         import TarFile
-from tempfile        import TemporaryFile
-
 from MetaDataManager import MetaDataManager
 from Pyro.errors     import NamingError
 
@@ -62,23 +59,12 @@ class DataManager(Pyro.core.ObjBase):
         self.pyro_daemon_loop_cond = True
         self.mdm = None
         try:
-            # The TarFile interface forces us to use a temporary file.
-            # Maybe it makes some unnecessary data copy, however having
-            # our chunks kept in the standard tar format is too cool
-            # to be changed
-            self.data_store_lock.acquire()
-            if self.debug: print "self.data_store_lock ACK"
-            self.data_store = TarFile(self.storage_file, 'w')
-            os.chmod(self.data_store.fileobj.name,
-                     stat.S_IRUSR | stat.S_IWUSR) # <=> chmod 600 ...
-            self.data_store_lock.release()
-            if self.debug: print "self.data_store_lock REL"
-            temp_file = TemporaryFile()
-            temp_file.write("DFS_STORAGE_v00\n")
-            temp_file.flush()
-            temp_file.seek(0)
-            self.add_local_chunk(0, "STORAGE_INITIALIZED", temp_file)
-            temp_file.close()
+            self.data_store_lock.acquire() # ACQ
+            self.data_store = open(self.storage_file, 'wb')
+            os.chmod(self.storage_file,
+                     stat.S_IRUSR | stat.S_IWUSR) # <=> chmod 600
+            self.data_store_lock.release() # REL
+            self.add_local_chunk(0, "STORAGE_INITIALIZED", "DFS_STORAGE_v00\n")
         except:
             logging.exception("can't create or write to: " + self.storage_file)
             sys.exit(0)
@@ -118,17 +104,14 @@ class DataManager(Pyro.core.ObjBase):
         middle = chunk_name.index('/')
         return (int(chunk_name[0:middle]), chunk_name[middle+1:])
 
-    def add_local_chunk(self, chunk_number, dfs_path, tmp_file):
+    def add_local_chunk(self, chunk_number, dfs_path, data):
         chunk_name = self.get_chunk_name(chunk_number, dfs_path)
-        self.data_store_lock.acquire()
-        if self.debug: print "self.data_store_lock ACK"
-        tar_info = self.data_store.gettarinfo (arcname = chunk_name,
-                                               fileobj = tmp_file)
-        self.data_store.addfile(tar_info, tmp_file)
-        self.data_store.fileobj.flush()
-        self.local_chunks[chunk_name] = True
-        self.data_store_lock.release()
-        if self.debug: print "self.data_store_lock REL"
+        self.data_store_lock.acquire() # ACQ
+        chunk_desc = (self.data_store.tell(), len(data))
+        self.data_store.write(data)
+        self.data_store.flush()
+        self.data_store_lock.release() # REL
+        self.local_chunks[chunk_name] = chunk_desc
 
     # return (False, None) if busy
     #        (True***,  None) if not busy but chunk was not found
@@ -138,33 +121,31 @@ class DataManager(Pyro.core.ObjBase):
     #               returned as first in the pair
     def get_chunk(self, chunk_name):
         res = (False, None)
-        ready = self.chunk_server_lock.acquire(False)
+        ready = self.chunk_server_lock.acquire(False) # ACQ
         if ready:
             # we acquired the lock to forbid simultaneous transfers
             # because we don't want the bandwidth to be shared between clients
-            if self.local_chunks.get(chunk_name) == None:
+            lookup = self.local_chunks.get(chunk_name)
+            if lookup == None:
                 res = (True, None)
             else:
-                self.data_store_lock.acquire()
-                if self.debug: print "self.data_store_lock ACK"
-                read_only_data_store = TarFile(self.storage_file, 'r')
-                untared_file = read_only_data_store.extractfile(chunk_name)
-                self.data_store_lock.release()
-                if self.debug: print "self.data_store_lock REL"
-                if untared_file == None:
+                read_only_data_store = open(self.storage_file, 'rb')
+                (chunk_offset, chunk_size) = lookup
+                read_only_data_store.seek(chunk_offset)
+                data     = read_only_data_store.read(chunk_size)
+                if data == None or len(data) != chunk_size:
                     logging.fatal("could not extract " + chunk_name +
                                   " from local store despite it was listed" +
                                   " in self.local_chunks")
                     res = (True, None)
                 else:
-                    chunk = untared_file.read()
-                    res = (True, chunk)
+                    res = (True, data)
         return res
 
     # notify transfer finished so that other can download chunks from this
     # DataManager
     def got_chunk(self):
-        self.chunk_server_lock.release()
+        self.chunk_server_lock.release() # REL
 
     # publish a local file into the DFS
     # the verify parameter controls usage of checksums
@@ -181,20 +162,15 @@ class DataManager(Pyro.core.ObjBase):
                 checksums = []
             input_file = open(filename, 'rb')
             try:
-                file_size = 0
+                file_size   = 0
                 chunk_index = 0
-                read_buff = input_file.read(self.CHUNK_SIZE)
+                read_buff   = input_file.read(self.CHUNK_SIZE)
                 while read_buff != '':
                     file_size += len(read_buff)
-                    temp_file = TemporaryFile()
-                    temp_file.write(read_buff)
-                    temp_file.flush()
-                    temp_file.seek(0)
                     if verify:
                         md5_sum = md5.new(read_buff)
                         checksums.append(md5_sum.hexdigest())
-                    self.add_local_chunk(chunk_index, dfs_path, temp_file)
-                    temp_file.close()
+                    self.add_local_chunk(chunk_index, dfs_path, read_buff)
                     chunk_index += 1
                     read_buff = input_file.read(self.CHUNK_SIZE)
                 if remote_mdm:
@@ -249,13 +225,8 @@ class DataManager(Pyro.core.ObjBase):
                             verif = md5.new(data).hexdigest()
                         if verif == c_sum:
                             downloaded = True
-                            temp_file = TemporaryFile()
-                            temp_file.write(data)
-                            temp_file.flush()
-                            temp_file.seek(0)
                             (idx, dfs_path) = self.decode_chunk_name(c)
-                            self.add_local_chunk(idx, dfs_path, temp_file)
-                            temp_file.close()
+                            self.add_local_chunk(idx, dfs_path, data)
                             if not only_peek:
                                 self.mdm.update_add_node(dfs_path, idx,
                                                          self.hostname)
@@ -276,13 +247,9 @@ class DataManager(Pyro.core.ObjBase):
 
     def find_remote_chunks(self, meta_info):
         remote_chunks = []
-        self.data_store_lock.acquire()
-        if self.debug: print "self.data_store_lock ACK"
         for (c, c_sum) in meta_info.get_chunk_name_and_sums():
             if self.local_chunks.get(c) == None:
                 remote_chunks.append((c, c_sum))
-        self.data_store_lock.release()
-        if self.debug: print "self.data_store_lock REL"
         return remote_chunks
 
     # download a DFS file and dump it to a local file
@@ -315,22 +282,20 @@ class DataManager(Pyro.core.ObjBase):
                 else:
                     output_file = open(fs_output_path, 'wb')
                 try:
-                    self.data_store_lock.acquire()
-                    if self.debug: print "self.data_store_lock ACK"
-                    read_only_data_store = TarFile(self.storage_file, 'r')
-                    self.data_store_lock.release()
-                    if self.debug: print "self.data_store_lock REL"
+                    read_only_data_store = open(self.storage_file, 'rb')
                     for (c, _) in meta_info.get_chunk_name_and_sums():
-                        self.data_store_lock.acquire()
-                        if self.debug: print "self.data_store_lock ACK"
-                        untared_file = read_only_data_store.extractfile(c)
-                        self.data_store_lock.release()
-                        if self.debug: print "self.data_store_lock REL"
-                        if untared_file == None:
+                        chunk_read = None
+                        (chunk_offset, chunk_size) = self.local_chunks[c]
+                        try:
+                            read_only_data_store.seek(chunk_offset)
+                            chunk_read = read_only_data_store.read(chunk_size)
+                        except:
+                            logging.exception("")
+                        if chunk_read == None or len(chunk_read) != chunk_size:
                             logging.fatal("could not extract " + c +
                                           " from local store")
                         else:
-                            output_file.write(untared_file.read())
+                            output_file.write(chunk_read)
                 except:
                     logging.exception("problem while writing " +
                                       dfs_path + " to " + fs_output_path)
@@ -348,12 +313,14 @@ class DataManager(Pyro.core.ObjBase):
         return self.mdm.ls_nodes()
 
     def ls_local_chunks(self):
-        res = []
-        self.data_store_lock.acquire()
-        if self.debug: print "self.data_store_lock ACK"
-        res = list(self.local_chunks.keys())
-        self.data_store_lock.release()
-        if self.debug: print "self.data_store_lock REL"
+        return list(self.local_chunks.keys())
+
+    # describes the local data store file
+    def desc_local_chunks(self):
+        res = "#name:offset:size\n"
+        for k in self.local_chunks.keys():
+            (offset, size) = self.local_chunks[k]
+            res += k + ':' + str(offset) + ':' + str(size) + '\n'
         return res
 
     def ls_all_chunks(self):
