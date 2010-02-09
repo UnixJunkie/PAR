@@ -42,7 +42,7 @@ def launch_local_meta_data_manager(debug = False):
     mdm = MetaDataManager()
     daemon.connect(mdm, 'meta_data_manager') # publish object
     if not debug:
-        logfile = open("/tmp/mdm_log_dfs_" + os.getlogin(), 'wb')
+        logfile = open("/tmp/mdm_log_dfs_" + os.getenv("USER"), 'wb')
         os.dup2(logfile.fileno(), sys.stdout.fileno())
         os.dup2(logfile.fileno(), sys.stderr.fileno())
         os.setsid()
@@ -59,7 +59,7 @@ def launch_local_data_manager(mdm_host, mdm_port, debug = False):
     dm = DataManager(mdm_host, mdm_port)
     daemon.connect(dm, 'data_manager') # publish object
     if not debug:
-        logfile = open("/tmp/dm_log_dfs_" + os.getlogin(), 'wb')
+        logfile = open("/tmp/dm_log_dfs_" + os.getenv("USER"), 'wb')
         os.dup2(logfile.fileno(), sys.stdout.fileno())
         os.dup2(logfile.fileno(), sys.stderr.fileno())
         os.setsid()

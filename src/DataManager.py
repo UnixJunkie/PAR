@@ -56,7 +56,7 @@ class DataManager(Pyro.core.ObjBase):
         self.CHUNK_SIZE            = 1024*1024
         self.data_store            = None
         self.hostname              = socket.getfqdn()
-        self.storage_file          = ("/tmp/dfs_" + os.getlogin() +
+        self.storage_file          = ("/tmp/dfs_" + os.getenv("USER") +
                                       "_at_" + self.hostname)
         self.local_chunks          = {}
         self.pyro_daemon_loop_cond = True
