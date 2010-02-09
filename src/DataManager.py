@@ -133,9 +133,6 @@ class DataManager(Pyro.core.ObjBase):
     #        (True***,  c)    if not busy and chunk found
     # ***IMPORTANT: call got_chunk just after on client side if True was
     #               returned as first in the pair
-    # FBR: all this stuff is only useful if the Pyro daemon running it
-    #      is multithread... If not, then calls are blocking until chunk
-    #      download is finished, exactly what we want to avoid :(
     def get_chunk(self, chunk_name):
         res = (False, None)
         ready = self.chunk_server_lock.acquire(False)
