@@ -110,6 +110,7 @@ def usage():
 
     Hacker commands:
     ----------------
+    dlc                             - describe local chunks
     lsac                            - list all chunks
     lsacs                           - list all chunk and checksums
     lslc                            - list local chunks
@@ -164,6 +165,9 @@ def process_commands(commands_list, dm, interactive = False):
         print "all chunks:"
         for c in dm.ls_all_chunks():
             print "  " + c
+    elif command == "dlc":
+        print "local chunk descriptions:"
+        print dm.desc_local_chunks()
     elif command == "lsacs":
         print "all chunk and checksums:"
         for l in dm.ls_all_chunk_and_sums():
