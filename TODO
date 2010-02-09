@@ -9,6 +9,7 @@ MUST DO
 * allow to compress then put, almost same system than using checksums
 * encryption is almost like compression...do it?
 * find a faster way to wait for the daemon to be started?
+
 * start processing results before workers are finished
   do we really need locks in worker threads?
 * use the same logger than DataManager.py in parallel.py instead of print
