@@ -247,6 +247,11 @@ def process_commands(commands_list, dm, interactive = False):
             logging.error("need one or two params")
         else:
             dm.get(param_1, param_2, False, True)
+    elif command == "mpeek":
+        if argc not in [2, 3]:
+            logging.error("need one or two params")
+        else:
+            dm.mget(param_1, param_2, True)
     elif command == "app":
         if argc not in [3]:
             logging.error("need two params")
