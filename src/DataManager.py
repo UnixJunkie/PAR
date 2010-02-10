@@ -46,6 +46,8 @@ class DataManager(Pyro.core.ObjBase):
                  debug = False, profiling = False):
 
         Pyro.core.ObjBase.__init__(self)
+        self.compress = False
+        self.checksum = False
         self.debug = debug
         # when compressing, we must compress before cuting into chunks so we
         # will have fewer chunks to transfer instead of having smaller ones
@@ -154,7 +156,7 @@ class DataManager(Pyro.core.ObjBase):
 
     # publish a local file into the DFS
     # the verify parameter controls usage of checksums
-    def put(self, filename, dfs_path = None, verify = True):
+    def put(self, filename, dfs_path = None):
         if not os.path.isfile(filename):
             logging.error("no such file: " + filename)
         else:
@@ -162,7 +164,7 @@ class DataManager(Pyro.core.ObjBase):
                 dfs_path = filename
             # compression of added file hook should be here
             checksums = None
-            if verify:
+            if self.checksum:
                 checksums = []
             input_file = open(filename, 'rb')
             try:
@@ -171,7 +173,7 @@ class DataManager(Pyro.core.ObjBase):
                 read_buff   = input_file.read(self.CHUNK_SIZE)
                 while read_buff != '':
                     file_size += len(read_buff)
-                    if verify:
+                    if self.checksum:
                         md5_sum = md5.new(read_buff)
                         checksums.append(md5_sum.hexdigest())
                     self.add_local_chunk(chunk_index, dfs_path, read_buff)
@@ -185,7 +187,7 @@ class DataManager(Pyro.core.ObjBase):
             input_file.close()
 
     # multiple put (recursive put, for directories)
-    def mput(self, directory, dfs_path = None, verify = True):
+    def mput(self, directory, dfs_path = None):
         if not os.path.isdir(directory):
             logging.error("no such directory: " + directory)
         else:
@@ -195,8 +197,7 @@ class DataManager(Pyro.core.ObjBase):
                 for f in files:
                     self.put(os.path.join(root, f),
                              os.path.join(root.replace(directory, dfs_path, 1),
-                                          f),
-                             verify)
+                                          f))
 
     # multiple get
     def mget(self, dfs_directory, local_directory = None, only_peek = False):
@@ -365,3 +366,21 @@ class DataManager(Pyro.core.ObjBase):
     def stop_local_mdm(self):
         self.use_local_mdm()
         self.mdm.stop()
+
+    def use_compression(self):
+        self.compress = True
+
+    def dont_use_compression(self):
+        self.compress = False
+
+    def use_checksums(self):
+        self.checksum = True
+
+    def dont_use_checksums(self):
+        self.checksum = False
+
+    def check(self):
+        return self.checksum
+
+    def comp(self):
+        return self.compress
