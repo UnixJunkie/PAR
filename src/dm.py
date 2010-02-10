@@ -85,7 +85,7 @@ def usage():
     cat    dfs_name                 - output file to screen
     app    dfs_name   local_file    - append file to a local one
     get    dfs_name   [local_file]  - retrieve a file
-    mget   dfs_dir    [local_dir]   - retrieve a directory, NOT IMPLEMENTED
+    mget   dfs_dir    [local_dir]   - retrieve a directory
     h[elp]                          - the prose you are reading
     lmdm                            - use the local MetaDataManager (default)
     rmdm host [port]                - use a remote MetaDataManager
@@ -237,6 +237,11 @@ def process_commands(commands_list, dm, interactive = False):
             logging.error("need one or two params")
         else:
             dm.get(param_1, param_2)
+    elif command == "mget":
+        if argc not in [2, 3]:
+            logging.error("need one or two params")
+        else:
+            dm.mget(param_1, param_2)
     elif command == "peek":
         if argc not in [2, 3]:
             logging.error("need one or two params")
