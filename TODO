@@ -1,14 +1,12 @@
 MUST DO
 -------
 
-* we may need some smart commands:
-  mget (multiple get), nmput
-* introduce put_modes: default is (uncompressed, no_checksum)
+* introduce put_modes: default is (no_checksum, uncompressed)
 * the get command and its dirty lock can be done safer if we use an object
   provided by the getter, then in the same layer we can do everything
 * allow to compress then put, almost same system than using checksums
-* find a faster way to wait for the daemon to be started?
 
+* find a faster way to wait for the daemon to be started?
 * start processing results before workers are finished
   do we really need locks in worker threads?
 * use the same logger than DataManager.py in parallel.py instead of print
