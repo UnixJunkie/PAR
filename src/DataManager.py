@@ -139,7 +139,7 @@ class DataManager(Pyro.core.ObjBase):
                 read_only_data_store = open(self.storage_file, 'rb')
                 (chunk_offset, chunk_size) = lookup
                 read_only_data_store.seek(chunk_offset)
-                data     = read_only_data_store.read(chunk_size)
+                data = read_only_data_store.read(chunk_size)
                 if data == None or len(data) != chunk_size:
                     logging.fatal("could not extract " + chunk_name +
                                   " from local store despite it was listed" +
