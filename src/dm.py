@@ -104,11 +104,18 @@ def usage():
     mpeek dfs_name   [local_file]   - selfish mget
     !COMMAND                        - execute local shell command COMMAND
 
-    ##### if nodes have same MetaDataManager:
+    ### only if nodes have same MetaDataManager:
     nget  local_dir  dfs_dir   n    - node get: local put then remote get
                                       from node n
     nmget local_dir  [dfs_dir] n    - node mget, local mput then remote mget
                                       from node n
+    +c                              - add data checksums on put
+    -c                              - no checksums on put (default)
+    +z                              - add compression on put
+                                      NOT IMPLEMENTED
+    -z                              - no compression on put (default)
+                                      NOT IMPLEMENTED
+    pm                              - display current put mode
 
     Hacker commands:
     ----------------
@@ -119,7 +126,7 @@ def usage():
     lsn                             - list nodes holding chunks
     """
 
-def process_commands(commands_list, dm, interactive = False):
+def process_commands(commands_list, dm, interactive):
     splitted = commands_list.split()
     argc     = len(splitted)
     command  = splitted[0]
@@ -139,6 +146,27 @@ def process_commands(commands_list, dm, interactive = False):
     elif command == "lmdm":
         dm.use_local_mdm()
         print "connected to local MDM"
+    elif command == "pm":
+        if dm.check():
+            print "checksums   ON"
+        else:
+            print "checksums   OFF"
+        if dm.comp():
+            print "compression ON"
+        else:
+            print "compression OFF"
+    elif command == "+c":
+        dm.use_checksums()
+        print "add checksum on put"
+    elif command == "-c":
+        dm.dont_use_checksums()
+        print "no checksum on put"
+    elif command == "+z":
+        dm.use_compression()
+        print "compression on put"
+    elif command == "-z":
+        dm.dont_use_compression()
+        print "no compression on put"
     elif command == "rmdm":
         try:
             rmdm_OK = False
@@ -194,7 +222,7 @@ def process_commands(commands_list, dm, interactive = False):
             logging.error("need one or two params")
         else:
             if command == "uput":
-                dm.put(param_1, param_2, False)
+                dm.put(param_1, param_2)
             else: # put
                 dm.put(param_1, param_2)
     elif command in ["nget","nmget"]:
@@ -227,9 +255,9 @@ def process_commands(commands_list, dm, interactive = False):
             logging.error("need one or two params")
         else:
             if command == "umput":
-                dm.mput(param_1, param_2, False)
+                dm.mput(param_1, param_2)
             else: # mput
-                dm.mput(param_1, param_2, True)
+                dm.mput(param_1, param_2)
     elif command == "get":
         if argc not in [2, 3]:
             logging.error("need one or two params")
@@ -362,4 +390,4 @@ if __name__ == '__main__':
             usage()
         else:
             for c in commands.split(','):
-                process_commands(c, dm)
+                process_commands(c, dm, interactive)
