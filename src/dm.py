@@ -304,10 +304,10 @@ if __name__ == '__main__':
     # to a remote DataManager...
     dm_URI  = ("PYROLOC://localhost:" + str(data_manager_port) +
                "/data_manager")
-    print dm_URI
+    #print dm_URI
     mdm_URI = ("PYROLOC://" + mdm_host + ':' + str(mdm_port) +
                "/meta_data_manager")
-    print mdm_URI
+    #print mdm_URI
     dm  = Pyro.core.getProxyForURI(dm_URI)
     mdm = Pyro.core.getProxyForURI(mdm_URI)
     dm_already_here  = False
@@ -317,7 +317,7 @@ if __name__ == '__main__':
         mdm_already_here = True
     except Pyro.errors.ProtocolError:
         # no local MetaDataManager running
-        print "starting MDM daemon..."
+        print "new MDM"
         pid = os.fork()
         if pid == 0: # child process
             launch_local_meta_data_manager(debug)
@@ -325,21 +325,17 @@ if __name__ == '__main__':
         time.sleep(0.1) # wait for him to enter his infinite loop
                         # FBR: I don't like this, it adds some unneeded
                         #      latency
-    else:
-        print "MDM daemon OK"
     try:
         dm.started()
         dm_already_here = True
     except Pyro.errors.ProtocolError:
         # no local DataManager running
-        print "starting DM  daemon..."
+        print "new DM"
         pid = os.fork()
         if pid == 0: # child process
             launch_local_data_manager(mdm_host, mdm_port, debug)
     if not dm_already_here:
         time.sleep(0.1) # wait for him to enter his infinite loop
-    else:
-        print "DM  daemon OK"
     if remote_mdm:
         dm.use_remote_mdm(mdm_host, mdm_port)
     if interactive:
