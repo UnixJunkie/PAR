@@ -28,11 +28,16 @@ import Pyro.core, Pyro.naming
 from MetaDataManager import MetaDataManager
 from Pyro.errors     import NamingError
 
-# FBR: * mget
-
 #pyro_default_port     = 7766
 data_manager_port      = 7767
 meta_data_manager_port = 7768
+
+# rindex of sub in super, -1 if not found
+def rfind(sub, super):
+    try:
+        return super.rindex(sub)
+    except:
+        return -1
 
 class DataManager(Pyro.core.ObjBase):
 
@@ -198,6 +203,34 @@ class DataManager(Pyro.core.ObjBase):
                              os.path.join(root.replace(directory, dfs_path, 1),
                                           f),
                              verify)
+
+    # multiple get
+    def mget(self, dfs_directory, local_directory = None, only_peek = False):
+        if local_directory == None:
+            local_directory = dfs_directory
+        # list all files whose name begins with dfs_directory
+        wanted_files = []
+        for f in self.ls_files():
+            if f.startswith(dfs_directory + '/'):
+                wanted_files.append(f)
+        if len(wanted_files) == 0:
+            logging.error("no such directory: " + dfs_directory)
+        else:
+            # get them
+            for f in wanted_files:
+                print "f:" + f
+                last_slash = rfind('/', f)
+                dirname = ""
+                if last_slash == -1:
+                    dirname = local_directory
+                else:
+                    dirname = f[0:last_slash]
+                    dirname = dirname.replace(dfs_directory,
+                                              local_directory, 1)
+                basename = f[last_slash+1:]
+                if not os.path.isdir(dirname):
+                    os.makedirs(dirname)
+                self.get(f, dirname + '/' + basename, False, only_peek)
 
     def download_chunks(self, chunk_and_sums, only_peek = False):
         res = True
