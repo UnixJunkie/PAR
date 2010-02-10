@@ -154,8 +154,7 @@ class DataManager(Pyro.core.ObjBase):
 
     # publish a local file into the DFS
     # the verify parameter controls usage of checksums
-    def put(self, filename, dfs_path = None, verify = True,
-            remote_mdm = None):
+    def put(self, filename, dfs_path = None, verify = True):
         if not os.path.isfile(filename):
             logging.error("no such file: " + filename)
         else:
@@ -178,14 +177,9 @@ class DataManager(Pyro.core.ObjBase):
                     self.add_local_chunk(chunk_index, dfs_path, read_buff)
                     chunk_index += 1
                     read_buff = input_file.read(self.CHUNK_SIZE)
-                if remote_mdm:
-                    remote_mdm.publish_meta_data(dfs_path, self.hostname,
-                                                 file_size,
-                                                 chunk_index, checksums)
-                else:
-                    self.mdm.publish_meta_data(dfs_path, self.hostname,
-                                               file_size, chunk_index,
-                                               checksums)
+                self.mdm.publish_meta_data(dfs_path, self.hostname,
+                                           file_size, chunk_index,
+                                           checksums)
             except:
                 logging.exception("problem while reading " + filename)
             input_file.close()
