@@ -98,15 +98,17 @@ def usage():
     ------------------
     uput  local_file [dfs_name]     - unsafe put (no checksums)
     umput local_dir  [dfs_dir]      - unsafe multiple put
-    nput  local_dir  dfs_dir   n    - node put: local put then remote get
-                                      from node n
-    nmput local_dir  [dfs_dir] n    - node mput, local mput then remote mget
-                                      from node n, NOT IMPLEMENTED
     peek  dfs_name   [local_file]   - retrieve a file but don't publish that
                                       you have downloaded its chunks
                                       (selfish get)
     mpeek dfs_name   [local_file]   - selfish mget
     !COMMAND                        - execute local shell command COMMAND
+
+    ##### if nodes have same MetaDataManager:
+    nget  local_dir  dfs_dir   n    - node get: local put then remote get
+                                      from node n
+    nmget local_dir  [dfs_dir] n    - node mget, local mput then remote mget
+                                      from node n
 
     Hacker commands:
     ----------------
@@ -195,35 +197,31 @@ def process_commands(commands_list, dm, interactive = False):
                 dm.put(param_1, param_2, False)
             else: # put
                 dm.put(param_1, param_2)
-    elif command in ["nput"]:
+    elif command in ["nget","nmget"]:
         if argc != 4:
             logging.error("need three params")
         else:
             rdm_URI  = ("PYROLOC://" + param_3 + ":" +
                         str(data_manager_port) + "/data_manager")
-            rmdm_URI = ("PYROLOC://" + param_3 + ":" +
-                        str(meta_data_manager_port) + "/meta_data_manager")
             rdm      = None
-            rmdm     = None
             try:
                 rdm  = Pyro.core.getProxyForURI(rdm_URI)
-                rmdm = Pyro.core.getProxyForURI(rmdm_URI)
             except Pyro.errors.URIError:
                 logging.error("unknown host: " + param_3)
             rdm_started  = False
-            rmdm_started = False
             try:
                 rdm_started  = rdm.started()
-                rmdm_started = rmdm.started()
             except:
                 pass
-            if not rmdm_started:
-                logging.error("MDM not running on: " + param_3)
             if not rdm_started:
                 logging.error("DM not running on: " + param_3)
-            if rdm_started and rmdm_started:
-                dm.put(param_1, param_2, remote_mdm = rmdm)
-                rdm.get(param_2, param_1)
+            else:
+                if command == "nget":
+                    dm.put(param_1, param_2)
+                    rdm.get(param_2, param_1)
+                else: # nmget
+                    dm.mput(param_1, param_2)
+                    rdm.mget(param_2, param_1)
     elif command in ["mput", "umput"]:
         if argc not in [2, 3]:
             logging.error("need one or two params")
