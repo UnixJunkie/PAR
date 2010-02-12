@@ -28,9 +28,8 @@ import Pyro.core, Pyro.naming
 from MetaDataManager import MetaDataManager
 from Pyro.errors     import NamingError
 
-#pyro_default_port     = 7766
-data_manager_port      = 7767
-meta_data_manager_port = 7768
+#pyro_default_port = 7766
+data_objects_port  = 7767
 
 # rindex of sub in super, -1 if not found
 def rfind(sub, super):
@@ -41,9 +40,7 @@ def rfind(sub, super):
 
 class DataManager(Pyro.core.ObjBase):
 
-    def __init__(self,
-                 mdm_host = "localhost", mdm_port = meta_data_manager_port,
-                 debug = False, profiling = False):
+    def __init__(self, debug = False):
 
         Pyro.core.ObjBase.__init__(self)
         self.compress = False
@@ -64,7 +61,7 @@ class DataManager(Pyro.core.ObjBase):
                                       "_at_" + self.hostname)
         self.local_chunks          = {}
         self.pyro_daemon_loop_cond = True
-        self.mdm = None
+        self.mdm                   = MetaDataManager()
         try:
             self.data_store_lock.acquire() # ACQ
             self.data_store = open(self.storage_file, 'wb')
@@ -75,13 +72,9 @@ class DataManager(Pyro.core.ObjBase):
         except:
             logging.exception("can't create or write to: " + self.storage_file)
             sys.exit(0)
-        if profiling:
-            self.mdm = MetaDataManager()
-        else:
-            self.use_remote_mdm(mdm_host, mdm_port)
 
     # change MetaDataManager
-    def use_remote_mdm(self, host, port = meta_data_manager_port):
+    def use_remote_mdm(self, host, port = data_objects_port):
         mdm_URI = "PYROLOC://" + host + ":" + str(port) + "/meta_data_manager"
         self.mdm = Pyro.core.getProxyForURI(mdm_URI)
         try:
@@ -92,7 +85,7 @@ class DataManager(Pyro.core.ObjBase):
 
     # change MetaDataManager to default one
     def use_local_mdm(self):
-        self.use_remote_mdm("localhost", meta_data_manager_port)
+        self.use_remote_mdm("localhost", data_objects_port)
 
     def get_chunk_name(self, chunk_number, dfs_path):
         if dfs_path.startswith('/'):
@@ -238,7 +231,7 @@ class DataManager(Pyro.core.ObjBase):
             downloaded = False
             for source in c_sources:
                 remote_dm_URI = ("PYROLOC://" + source + ":" +
-                                 str(data_manager_port) + "/data_manager")
+                                 str(data_objects_port) + "/data_manager")
                 remote_dm = Pyro.core.getProxyForURI(remote_dm_URI)
                 try:
                     (request_was_processed, data) = remote_dm.get_chunk(c)
