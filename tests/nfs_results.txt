@@ -11,3 +11,25 @@
 256 23.06
 512 46.10
 1024 92.35
+
+# NFS checkout time (s) for 8 nodes from server of ~/512
+real 44.533
+real 44.532
+real 44.567
+real 44.532
+real 44.552
+real 44.533
+real 44.527
+real 44.546
+avg: 44.54
+
+# dm.py get time (s) for 8 nodes from server of ~/512
+real 32.700
+real 33.681
+real 35.543
+real 33.652
+real 34.281
+real 35.013
+real 35.259
+real 33.396
+avg: 34.19
