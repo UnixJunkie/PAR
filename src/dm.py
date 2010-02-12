@@ -44,7 +44,7 @@ def launch_local_meta_data_manager(debug = False):
         logfile = open("/tmp/mdm_log_dfs_" + os.getenv("USER"), 'wb')
         os.dup2(logfile.fileno(), sys.stdout.fileno())
         os.dup2(logfile.fileno(), sys.stderr.fileno())
-        os.setsid()
+        #os.setsid()
     sys.stdin.close()
     daemon.requestLoop(condition=lambda: mdm.pyro_daemon_loop_cond)
     # the following is executed only after mdm.stop() was called
@@ -52,16 +52,16 @@ def launch_local_meta_data_manager(debug = False):
     daemon.shutdown()
     sys.exit(0)
 
-def launch_local_data_manager(mdm_host, mdm_port, debug = False):
+def launch_local_data_manager(debug = False):
     Pyro.core.initServer()
     daemon = Pyro.core.Daemon(port = data_manager_port)
-    dm = DataManager(mdm_host, mdm_port)
+    dm = DataManager("localhost", meta_data_manager_port)
     daemon.connect(dm, 'data_manager') # publish object
     if not debug:
         logfile = open("/tmp/dm_log_dfs_" + os.getenv("USER"), 'wb')
         os.dup2(logfile.fileno(), sys.stdout.fileno())
         os.dup2(logfile.fileno(), sys.stderr.fileno())
-        os.setsid()
+        #os.setsid()
     sys.stdin.close()
     daemon.requestLoop(condition=lambda: dm.pyro_daemon_loop_cond)
     # the following is executed only after dm.stop() was called
@@ -104,11 +104,10 @@ def usage():
     mpeek dfs_name   [local_file]   - selfish mget
     !COMMAND                        - execute local shell command COMMAND
 
-    ### only if nodes have same MetaDataManager:
     nget  local_dir  dfs_dir   n    - node get: local put then remote get
-                                      from node n
+                                      from node n (nodes must use same MDM)
     nmget local_dir  [dfs_dir] n    - node mget, local mput then remote mget
-                                      from node n
+                                      from node n (nodes must use same MDM)
     +c                              - add data checksums on put
     -c                              - no checksums on put (default)
     +z                              - add compression on put
@@ -369,7 +368,7 @@ if __name__ == '__main__':
         print "new DM"
         pid = os.fork()
         if pid == 0: # child process
-            launch_local_data_manager(mdm_host, mdm_port, debug)
+            launch_local_data_manager(debug)
     if not dm_already_here:
         time.sleep(0.1) # wait for him to enter his infinite loop
     if remote_mdm:
