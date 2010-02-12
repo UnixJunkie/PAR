@@ -335,7 +335,9 @@ if __name__ == '__main__':
     if not dm_already_here:
         time.sleep(0.1) # wait for them to enter the infinite loop
                         # FBR: unneeded latency?
-    dm.use_remote_mdm(mdm_host, mdm_port)
+        dm.use_remote_mdm("localhost", data_objects_port)
+    if remote_mdm:
+        dm.use_remote_mdm(mdm_host, mdm_port)
     if interactive:
         try:
             usage()
