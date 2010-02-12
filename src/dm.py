@@ -31,41 +31,26 @@ from MetaDataManager import MetaDataManager
 from DataManager     import DataManager
 from Pyro.errors     import NamingError
 
-#pyro_default_port     = 7766
-data_manager_port      = 7767
-meta_data_manager_port = 7768
+#pyro_default_port = 7766
+data_objects_port  = 7767
 
-def launch_local_meta_data_manager(debug = False):
+def launch_data_objects(debug = False):
     Pyro.core.initServer()
-    daemon = Pyro.core.Daemon(port = meta_data_manager_port)
-    mdm = MetaDataManager()
-    daemon.connect(mdm, 'meta_data_manager') # publish object
+    daemon = Pyro.core.Daemon(port = data_objects_port)
+    mdm    = MetaDataManager()
+    dm     = DataManager()
+    daemon.connect(mdm, 'meta_data_manager') # publish them
+    daemon.connect(dm,  'data_manager')
     if not debug:
-        logfile = open("/tmp/mdm_log_dfs_" + os.getenv("USER"), 'wb')
+        logfile = open("/tmp/log_dfs_" + os.getenv("USER"), 'wb')
         os.dup2(logfile.fileno(), sys.stdout.fileno())
         os.dup2(logfile.fileno(), sys.stderr.fileno())
-        #os.setsid()
-    sys.stdin.close()
-    daemon.requestLoop(condition=lambda: mdm.pyro_daemon_loop_cond)
-    # the following is executed only after mdm.stop() was called
-    daemon.disconnect(mdm)
-    daemon.shutdown()
-    sys.exit(0)
-
-def launch_local_data_manager(debug = False):
-    Pyro.core.initServer()
-    daemon = Pyro.core.Daemon(port = data_manager_port)
-    dm = DataManager("localhost", meta_data_manager_port)
-    daemon.connect(dm, 'data_manager') # publish object
-    if not debug:
-        logfile = open("/tmp/dm_log_dfs_" + os.getenv("USER"), 'wb')
-        os.dup2(logfile.fileno(), sys.stdout.fileno())
-        os.dup2(logfile.fileno(), sys.stderr.fileno())
-        #os.setsid()
+        #os.setsid() # make deamons harder to kill by accident
     sys.stdin.close()
     daemon.requestLoop(condition=lambda: dm.pyro_daemon_loop_cond)
     # the following is executed only after dm.stop() was called
     daemon.disconnect(dm)
+    daemon.disconnect(mdm)
     daemon.shutdown()
     sys.exit(0)
 
@@ -229,7 +214,7 @@ def process_commands(commands_list, dm, interactive):
             logging.error("need three params")
         else:
             rdm_URI  = ("PYROLOC://" + param_3 + ":" +
-                        str(data_manager_port) + "/data_manager")
+                        str(data_objects_port) + "/data_manager")
             rdm      = None
             try:
                 rdm  = Pyro.core.getProxyForURI(rdm_URI)
@@ -320,7 +305,7 @@ if __name__ == '__main__':
     interactive    = False
     remote_mdm     = False
     mdm_host       = "localhost"
-    mdm_port       = meta_data_manager_port
+    mdm_port       = data_objects_port
     remote_mdm_i   = find("-h", sys.argv)
     if remote_mdm_i != -1:
         remote_mdm = True
@@ -335,44 +320,22 @@ if __name__ == '__main__':
         interactive = True
     else:
         commands = " ".join(sys.argv[commands_start:])
-    # for debugging purpose we could even imagine one can want to connect
-    # to a remote DataManager...
-    dm_URI  = ("PYROLOC://localhost:" + str(data_manager_port) +
+    dm_URI  = ("PYROLOC://localhost:" + str(data_objects_port) +
                "/data_manager")
     #print dm_URI
-    mdm_URI = ("PYROLOC://" + mdm_host + ':' + str(mdm_port) +
-               "/meta_data_manager")
-    #print mdm_URI
-    dm  = Pyro.core.getProxyForURI(dm_URI)
-    mdm = Pyro.core.getProxyForURI(mdm_URI)
-    dm_already_here  = False
-    mdm_already_here = False
+    dm = Pyro.core.getProxyForURI(dm_URI)
+    dm_already_here = False
     try:
-        mdm.started()
-        mdm_already_here = True
-    except Pyro.errors.ProtocolError:
-        # no local MetaDataManager running
-        print "new MDM"
+        dm_already_here = dm.started()
+    except Pyro.errors.ProtocolError: # no local DM running
+        print "new DM and MDM"
         pid = os.fork()
         if pid == 0: # child process
-            launch_local_meta_data_manager(debug)
-    if not mdm_already_here:
-        time.sleep(0.1) # wait for him to enter his infinite loop
-                        # FBR: I don't like this, it adds some unneeded
-                        #      latency
-    try:
-        dm.started()
-        dm_already_here = True
-    except Pyro.errors.ProtocolError:
-        # no local DataManager running
-        print "new DM"
-        pid = os.fork()
-        if pid == 0: # child process
-            launch_local_data_manager(debug)
+            launch_data_objects(debug)
     if not dm_already_here:
-        time.sleep(0.1) # wait for him to enter his infinite loop
-    if remote_mdm:
-        dm.use_remote_mdm(mdm_host, mdm_port)
+        time.sleep(0.1) # wait for them to enter the infinite loop
+                        # FBR: unneeded latency?
+    dm.use_remote_mdm(mdm_host, mdm_port)
     if interactive:
         try:
             usage()
