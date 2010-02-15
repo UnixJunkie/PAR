@@ -4,6 +4,9 @@
 #                TCP port 9090 must also be open if the server is also
 #                the Pyro nameserver (default case)
 
+# if Pyro is not installed system wide, try this:
+export PYTHONPATH=~/usr/Pyro-3.10/build/lib
+
 # Some usage examples:
 
 # run in parallel commands from test_parallel.input
