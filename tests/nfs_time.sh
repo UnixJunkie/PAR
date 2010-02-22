@@ -10,7 +10,7 @@
 #     done
 # done
 
-# node1, node2, 
+# node1, node2
 (time cp ~/1_n_/1 /tmp    ) 2>&1 | grep real > /tmp/1_n.txt
 (time cp ~/1_n_/2 /tmp    ) 2>&1 | grep real >> /tmp/1_n.txt
 (time cp ~/1_n_/4 /tmp    ) 2>&1 | grep real >> /tmp/1_n.txt
@@ -23,7 +23,7 @@
 (time cp ~/1_n_/512 /tmp  ) 2>&1 | grep real >> /tmp/1_n.txt
 (time cp ~/1_n_/1024 /tmp ) 2>&1 | grep real >> /tmp/1_n.txt
 
-# node 1*2 3*4
+# node 3*4
 (time cp ~/2_n_/1 /tmp    ) 2>&1 | grep real > /tmp/2_n.txt
 (time cp ~/2_n_/2 /tmp    ) 2>&1 | grep real >> /tmp/2_n.txt
 (time cp ~/2_n_/4 /tmp    ) 2>&1 | grep real >> /tmp/2_n.txt
