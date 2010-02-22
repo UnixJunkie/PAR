@@ -81,7 +81,6 @@ def usage():
 
     Advanced commands:
     ------------------
-    uput  local_file [dfs_name]     - unsafe put (no checksums)
     umput local_dir  [dfs_dir]      - unsafe multiple put
     peek  dfs_name   [local_file]   - retrieve a file but don't publish that
                                       you have downloaded its chunks
@@ -201,14 +200,11 @@ def process_commands(commands_list, dm, interactive):
         dm.stop()
         print "kill: command sent to local deamons"
         sys.exit(0)
-    elif command in ["put", "uput"]:
+    elif command == "put":
         if argc not in [2, 3]:
             logging.error("need one or two params")
         else:
-            if command == "uput":
-                dm.put(param_1, param_2)
-            else: # put
-                dm.put(param_1, param_2)
+            dm.put(param_1, param_2)
     elif command in ["nget","nmget"]:
         if argc != 4:
             logging.error("need three params")
