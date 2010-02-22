@@ -81,7 +81,6 @@ def usage():
 
     Advanced commands:
     ------------------
-    umput local_dir  [dfs_dir]      - unsafe multiple put
     peek  dfs_name   [local_file]   - retrieve a file but don't publish that
                                       you have downloaded its chunks
                                       (selfish get)
@@ -230,14 +229,11 @@ def process_commands(commands_list, dm, interactive):
                 else: # nmget
                     dm.mput(param_1, param_2)
                     rdm.mget(param_2, param_1)
-    elif command in ["mput", "umput"]:
+    elif command == "mput":
         if argc not in [2, 3]:
             logging.error("need one or two params")
         else:
-            if command == "umput":
-                dm.mput(param_1, param_2)
-            else: # mput
-                dm.mput(param_1, param_2)
+            dm.mput(param_1, param_2)
     elif command == "get":
         if argc not in [2, 3]:
             logging.error("need one or two params")
