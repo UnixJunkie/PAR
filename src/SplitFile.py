@@ -6,6 +6,7 @@ If you use and like our software, please send us a postcard! ^^
 Copyright (C) 2009, 2010, Zhang Initiative Research Unit,
 Advance Science Institute, Riken
 2-1 Hirosawa, Wako, Saitama 351-0198, Japan
+
 ---
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -19,6 +20,9 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
+---
+
+Iterator to split a file.
 """
 
 import math, os, sys
