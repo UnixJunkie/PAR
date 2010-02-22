@@ -337,7 +337,7 @@ if __name__ == '__main__':
             read = sys.stdin.readline().strip()
             while len(read) > 0:
                 process_commands(read, dm, interactive)
-                sys.stdout.write("dfs# ") # a cool prompt, isn't it? :-)
+                sys.stdout.write("dfs# ")
                 read = sys.stdin.readline().strip()
         except KeyboardInterrupt:
             pass
