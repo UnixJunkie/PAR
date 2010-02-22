@@ -28,19 +28,29 @@ class SplitFile:
     def __init__(self, input_file, nb_splits):
         self.nb_splits  = float(nb_splits)
         self.index      = 0
+        self.abspath    = ""
         self.to_read    = None
         self.block_size = 0
         try:
+            self.abspath    = os.path.abspath(input_file)
             self.block_size = int(math.ceil(
                 float(os.path.getsize(input_file)) / self.nb_splits))
-            self.to_read    = open(input_file, 'rb')
+            self.to_read    = open(self.abspath, 'rb')
         except:
             print "exception: ", sys.exc_info()[0]
 
     def next(self):
-        res = self.to_read(self.block_size)
-        if res == '':
+        res  = str(self.index) + '_' + self.abspath.replace(os.sep, '_')
+        buff = self.to_read.read(self.block_size)
+        if buff == '':
             raise StopIteration
+        try:
+            to_write = open(res, 'wb')
+            to_write.write(buff)
+            to_write.close()
+        except:
+            print "exception: ", sys.exc_info()[0]
+        self.index += 1
         return res
 
     def __iter__(self):
