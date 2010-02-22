@@ -124,10 +124,16 @@ my_parser.add_option("-c", "--client",
                      dest = "server_name", default = None,
                      help = ("read commands from a server instead of a file "
                              "(incompatible with -i)"))
+my_parser.add_option("-d", "--demux",
+                     dest = "demuxer", default = None,
+                     help = "specify a demuxer, NOT IMPLEMENTED")
 my_parser.add_option("-i", "--input",
                      dest = "commands_file", default = None,
                      help = ("/dev/stdin for example "
                              "(incompatible with -c)"))
+my_parser.add_option("-m", "--mux",
+                     dest = "muxer", default = None,
+                     help = "specify a muxer, NOT IMPLEMENTED")
 my_parser.add_option("-o", "--output",
                      dest = "output_file", default = None,
                      help = "log to a file instead of stdout")
@@ -173,6 +179,8 @@ if __name__ == '__main__':
         post_proc_fun         = None
         has_post_proc_option  = post_proc_option
         is_server             = options.is_server
+        muxer                 = options.muxer
+        demuxer               = options.demuxer
         daemon                = None
         if output_to_file:
             output_file = open(output_file_option, 'a')
