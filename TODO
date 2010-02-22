@@ -1,6 +1,7 @@
 MUST DO
 -------
 
+* add -[de]mux
 * the get command and its dirty lock can be done safer if we use an object
   provided by the getter, then in the same layer we can do everything
 * allow to compress on put, almost same system than using checksums
