@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2.4
 
 """
 If you use and like our software, please send us a postcard! ^^
