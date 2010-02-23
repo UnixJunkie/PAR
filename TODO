@@ -2,6 +2,9 @@ MUST DO
 -------
 
 * add -[de]mux
+* introduce data prefetching when this is done to increase data transfer
+  overlapping with computation
+
 * introduce a lock to prevent multiple get at the same time on same dm
 * do a code review of dm, DM and MDM
 * the get command and its dirty lock can be done safer if we use an object
