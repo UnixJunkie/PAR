@@ -1,0 +1,89 @@
+;; comfortable code
+(global-font-lock-mode t)
+(setq transient-mark-mode t)
+(show-paren-mode t)
+(column-number-mode t)
+
+;; I hate [long] tabs
+(setq-default indent-tabs-mode nil)
+(setq indent-tabs-mode nil)
+(setq c-basic-indent 2)
+(setq tab-width 2)
+
+;; I hate backup files hanging everywhere
+(setq backup-directory-alist (quote ((".*" . "~/.emacs_backups/"))))
+
+;; allow using a wheel-mouse
+(mouse-wheel-mode t)
+
+;; M-g does something useless by default
+(global-set-key "\M-g" 'goto-line)
+
+;; reverse of \C-c\C-c (comment out region)
+(global-set-key "\C-cu" 'uncomment-region)
+
+;; easy acces to cursor position saving into registers
+(global-set-key "\C-xp" 'point-to-register)
+(global-set-key "\C-xj" 'jump-to-register)
+
+;; clean file
+(global-set-key [f1] 'delete-trailing-whitespace)
+
+;; reload buffer from disk
+(global-set-key [f5] 'revert-buffer)
+
+;; restart server
+(global-set-key [f6] 'server-start)
+
+;; rectangle editing
+(global-set-key [f9]  'kill-rectangle)
+(global-set-key [f10] 'yank-rectangle)
+
+;; enable upcase-region command C-x c-u
+(put 'upcase-region 'disabled nil)
+(put 'downcase-region 'disabled nil)
+
+;; silent bell
+(setq visible-bell t)
+
+;; enable use of the emacsclient command
+(server-start)
+
+;; nice colors
+;(set-background-color "DarkSlateGray")
+;(set-foreground-color "White")
+
+;; got from: http://www.cgd.ucar.edu/cms/processor/archive/samples/\
+;; unsupported/processor-tools.el
+(defun kill-trailing-whitespace ()
+  "Eliminate trailing whitespace"
+  (interactive)
+  (save-excursion
+    (goto-char (point-min))
+    (while (re-search-forward "[ \t]+$" nil t)
+      (delete-region (match-beginning 0) (point)))))
+
+;; doxygen mode
+;; (autoload 'doxymacs-mode "doxymacs" "Deal with doxygen." t)
+;; (add-hook 'c-mode-common-hook 'doxymacs-mode)
+;; (defun my-doxymacs-font-lock-hook ()
+;;   (if (or (eq major-mode 'c-mode) (eq major-mode 'c++-mode))
+;;       (doxymacs-font-lock)))
+;; (add-hook 'font-lock-mode-hook 'my-doxymacs-font-lock-hook)
+
+;; python mode for scons files
+(setq auto-mode-alist (cons '("SConstruct" . python-mode) auto-mode-alist))
+(setq auto-mode-alist (cons '("SConscript" . python-mode) auto-mode-alist))
+
+;; gpg mode
+;(require 'epa-setup)
+
+;; c programming macros
+(fset 'cif
+   [?i ?f ?  ?( ?) ?  ?{ return tab return tab ?}])
+(fset 'cifelse
+   [tab ?i ?f ?  ?( ?) ?  ?{ return tab return ?} ?  ?e ?l ?s ?e ?  ?{ return return ?}])
+(fset 'cfor
+   [tab ?f ?o ?r ?  ?( ?  ?\; ?  ?\; ?  ?) ?  ?{ return tab return ?}])
+(fset 'cwhile
+   [tab ?w ?h ?i ?l ?e ?  ?( ?) ?  ?{ return tab return ?}])
