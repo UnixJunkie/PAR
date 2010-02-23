@@ -1,0 +1,8 @@
+Emacs.toolBar:off
+Emacs*font:7x13
+Emacs*foreground:White
+Emacs*background:DarkSlateGray
+Emacs*geometry:80x74
+Emacs*cursorColor:red
+Emacs*borderWidth:0
+Emacs*internalBorder:0
