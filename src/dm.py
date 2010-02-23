@@ -1,10 +1,11 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2.4
 
 """
+If you use and like our software, please send us a postcard! ^^
+
 Copyright (C) 2009, 2010, Zhang Initiative Research Unit,
 Advance Science Institute, Riken
 2-1 Hirosawa, Wako, Saitama 351-0198, Japan
-If you use and like our software, please send us a postcard! ^^
 ---
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
