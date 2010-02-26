@@ -1,5 +1,6 @@
 clean:
-	rm -f src/*.pyc Pyro_NS_URI test_parallel.output nohup.out
+	rm -f Pyro_NS_URI test_parallel.output nohup.out
+	find . -name *.pyc -exec rm -f {} \;
 
 test:
 	./test_parallel.sh
