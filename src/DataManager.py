@@ -277,8 +277,6 @@ class DataManager(Pyro.core.ObjBase):
     def get(self, dfs_path, fs_output_path, append_mode = False,
             only_peek = False):
         res = True
-        if fs_output_path == None:
-            fs_output_path = dfs_path
         meta_info = self.mdm.get_meta_data(dfs_path)
         if meta_info == None:
             logging.error("no such file: " + dfs_path)

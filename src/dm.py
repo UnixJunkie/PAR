@@ -55,6 +55,13 @@ def launch_data_objects(debug = False):
     daemon.shutdown()
     sys.exit(0)
 
+# convert a relative file path to an absolute one
+def relative_to_absolute(path):
+    if path.startswith('/'):
+        return path
+    else:
+        return os.path.join(os.getcwd(), path)
+
 def usage():
     print """usage:
 
@@ -86,8 +93,6 @@ def usage():
                                       you have downloaded its chunks
                                       (selfish get)
     mpeek dfs_name   [local_file]   - selfish mget
-    !COMMAND                        - execute local shell command COMMAND
-
     nget  local_dir  dfs_dir   n    - node get: local put then remote get
                                       from node n (nodes must use same MDM)
     nmget local_dir  [dfs_dir] n    - node mget, local mput then remote mget
@@ -99,6 +104,7 @@ def usage():
     -z                              - no compression on put (default)
                                       NOT IMPLEMENTED
     pm                              - display current put mode
+    !COMMAND                        - execute shell command COMMAND
 
     Hacker commands:
     ----------------
@@ -122,9 +128,9 @@ def process_commands(commands_list, dm, interactive):
         param_2 = splitted[2]
     if argc >= 4:
         param_3 = splitted[3]
-    if commands_list.startswith('!'): # run local shell command
+    if commands_list.startswith('!'): # run shell command
         print commands.getoutput(commands_list[1:])
-    elif command in ["help", "h"]:
+    elif command in ["help","h"]:
         usage()
     elif command == "lmdm":
         dm.use_local_mdm()
@@ -204,7 +210,7 @@ def process_commands(commands_list, dm, interactive):
         if argc not in [2, 3]:
             logging.error("need one or two params")
         else:
-            dm.put(param_1, param_2)
+            dm.put(relative_to_absolute(param_1), param_2)
     elif command in ["nget","nmget"]:
         if argc != 4:
             logging.error("need three params")
@@ -224,6 +230,7 @@ def process_commands(commands_list, dm, interactive):
             if not rdm_started:
                 logging.error("DM not running on: " + param_3)
             else:
+                param_1 = relative_to_absolute(param_1)
                 if command == "nget":
                     dm.put(param_1, param_2)
                     rdm.get(param_2, param_1)
@@ -234,38 +241,34 @@ def process_commands(commands_list, dm, interactive):
         if argc not in [2, 3]:
             logging.error("need one or two params")
         else:
-            dm.mput(param_1, param_2)
-    elif command == "get":
+            dm.mput(relative_to_absolute(param_1), param_2)
+    elif command in ["get","peek"]:
         if argc not in [2, 3]:
             logging.error("need one or two params")
         else:
-            dm.get(param_1, param_2)
-    elif command == "mget":
+            if not param_2:
+                param_2 = os.path.basename(param_1)
+            dm.get(param_1, relative_to_absolute(param_2),
+                   False, command == "peek")
+    elif command in ["mget","mpeek"]:
         if argc not in [2, 3]:
             logging.error("need one or two params")
         else:
-            dm.mget(param_1, param_2)
-    elif command == "peek":
-        if argc not in [2, 3]:
-            logging.error("need one or two params")
-        else:
-            dm.get(param_1, param_2, False, True)
-    elif command == "mpeek":
-        if argc not in [2, 3]:
-            logging.error("need one or two params")
-        else:
-            dm.mget(param_1, param_2, True)
+            if not param_2:
+                param_2 = os.path.basename(param_1)
+            dm.mget(param_1, relative_to_absolute(param_2),
+                    command == "mpeek")
     elif command == "app":
         if argc not in [3]:
             logging.error("need two params")
         else:
-            dm.get(param_1, param_2, True)
+            dm.get(param_1, relative_to_absolute(param_2), True)
     elif command == "cat":
         if argc not in [2]:
             logging.error("need one param")
         else:
             dm.get(param_1, "/dev/stdout")
-    elif command in ["q","quit", "e", "exit"]:
+    elif command in ["q","quit","e","exit"]:
         sys.exit(0)
     else:
         logging.error("unknown command: " + command)
