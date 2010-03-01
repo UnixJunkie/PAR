@@ -23,28 +23,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import time
 
-# How is described a file?
-##########################
-# metadata: <-- managed by MetaDataManager (only one per parallel.py server)
-# =========
-# - a name
-# - a size (of the uncompressed file)
-# - a creation time and date
-#   [optionaly]
-#   - a user
-#   - a group
-#   - permissions for UGO <-- NOTE: ACLs are fare better than UGO
-# data: <-- managed by DataManager (one per parallel.py client,
-#                                   ??? plus one for the server ???)
-#                                   the server could be run on a cluster
-#                                   frontend, some clusters don't like
-#                                   that nodes use the frontend's
-#                                   disk/network/CPU too heavily
-# maybe we should have DataManagers only inside the cluster, and maybe
-# we need a special mode (--mirror), which means this special DataManager
-# must have all data listed by the MetaDataManager
-# =====
-# - a dictionary of chunks
 class MetaData:
     # DataManager must not create this object, he must only give all info
     # to create it to the MetaDataManager which will create and then handle
