@@ -1,12 +1,14 @@
 MUST DO
 -------
 
-* add -[de]mux
-* introduce data prefetching when this is done to increase data transfer
-  overlapping with computation
-
-* introduce a lock to prevent multiple get at the same time on same dm
 * do a code review of dm, DM and MDM
+* add -[de]mux, then introduce data prefetching when this is done to increase
+  data transfer overlapping with computation
+* add data node failure management
+
+* introduce a lock to prevent multiple downloads at the same time on same dm
+* remove nmput and nput because they introduce possible overlapping of
+  upload and download and they are kind of dirty compared to other commands?
 * the get command and its dirty lock can be done safer if we use an object
   provided by the getter, then in the same layer we can do everything
 * allow to compress on put, almost same system than using checksums
@@ -59,11 +61,6 @@ NICE TO HAVE
 * add a code coverage test, python is not compiled and pychecker is too
   light at checking things
 * generate tests to verify each option have an effect when used on the CLI
-* If we have many workers and only one server, if workers crush jobs very
-  fast, they should request several jobs at a time and send several results at
-  a time (because latency is not 0 for distributed objects...)
-  A russian doll client would act like this (ask for many jobs at a
-  time for the cluster he is hiding).
 
 JUST DREAMING
 -------------
