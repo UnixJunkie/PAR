@@ -210,6 +210,8 @@ def process_commands(commands_list, dm, interactive):
         if argc not in [2, 3]:
             logging.error("need one or two params")
         else:
+            if not param_2:
+                param_2 = os.path.basename(param_1)
             dm.put(relative_to_absolute(param_1), param_2)
     elif command in ["nget","nmget"]:
         if argc != 4:
@@ -241,6 +243,8 @@ def process_commands(commands_list, dm, interactive):
         if argc not in [2, 3]:
             logging.error("need one or two params")
         else:
+            if not param_2:
+                param_2 = os.path.basename(param_1)
             dm.mput(relative_to_absolute(param_1), param_2)
     elif command in ["get","peek"]:
         if argc not in [2, 3]:
