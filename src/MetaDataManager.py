@@ -45,43 +45,33 @@ class MetaDataManager(Pyro.core.ObjBase):
         self.pyro_daemon_loop_cond = True
 
     def ls_files(self):
-        self.files_lock.acquire()
         values = list(self.files.values())
-        self.files_lock.release()
         res = []
         for v in values:
             res.append(v.get_uniq_ID())
         return res
 
     def ls_chunks(self):
-        self.chunks_lock.acquire()
         keys = list(self.chunks.keys())
-        self.chunks_lock.release()
         res = []
         for v in keys:
             res.append(v + ':' + str(self.chunks[v]))
         return res
 
     def ls_chunk_and_sums(self):
-        self.files_lock.acquire()
         values = list(self.files.values())
-        self.files_lock.release()
         res = []
         for v in values:
             res.append(v.get_chunk_name_and_sums())
         return res
 
     def ls_nodes(self):
-        self.chunks_lock.acquire()
         res = list(self.nodes.keys())
-        self.chunks_lock.release()
         return res
 
     def resolve(self, chunk_name):
         res = []
-        self.chunks_lock.acquire()
         res = self.chunks[chunk_name]
-        self.chunks_lock.release()
         return res
 
     # publish a new file's meta data object
@@ -109,9 +99,7 @@ class MetaDataManager(Pyro.core.ObjBase):
 
     # retrieve a file's meta data
     def get_meta_data(self, dfs_path):
-        self.files_lock.acquire()
         res = self.files.get(dfs_path)
-        self.files_lock.release()
         return res
 
     # augment nodes list for an existing file chunk
