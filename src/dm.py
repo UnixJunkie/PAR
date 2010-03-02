@@ -297,6 +297,10 @@ if __name__ == '__main__':
     logging.basicConfig(level  = logging.DEBUG,
                         format = '%(asctime)s %(levelname)s %(message)s')
     #print "WARNING: this tool is EXPERIMENTAL..."
+    # FBR: remove this -h, user should use the rmdm command instead and
+    #      * -h should trigger help message instead
+    #      * add start and stop commands with some reference couting in order
+    #        to kill the daemons only if no more used
     commands_start = 1
     debug          = False
     interactive    = False
