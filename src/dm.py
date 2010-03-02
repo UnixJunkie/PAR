@@ -90,10 +90,6 @@ def usage():
                                       you have downloaded its chunks
                                       (selfish get)
     mpeek dfs_name   [local_file]   - selfish mget
-    nget  local_dir  dfs_dir   n    - node get: local put then remote get
-                                      from node n (nodes must use same MDM)
-    nmget local_dir  [dfs_dir] n    - node mget, local mput then remote mget
-                                      from node n (nodes must use same MDM)
     +c                              - add data checksums on put
     -c                              - no checksums on put (default)
     +z                              - add compression on put
@@ -110,6 +106,10 @@ def usage():
     lsacs                           - list all chunk and checksums
     lslc                            - list local chunks
     lsn                             - list nodes holding chunks
+    nget  local_dir  dfs_dir   n    - node get: local put then remote get
+                                      from node n (nodes must use same MDM)
+    nmget local_dir  [dfs_dir] n    - node mget, local mput then remote mget
+                                      from node n (nodes must use same MDM)
     """
 
 def process_commands(commands_list, dm, interactive):
@@ -127,7 +127,7 @@ def process_commands(commands_list, dm, interactive):
         param_3 = splitted[3]
     if commands_list.startswith('!'): # run shell command
         print commands.getoutput(commands_list[1:])
-    elif command in ["help","h"]:
+    elif command in ["--help","help","h"]:
         usage()
     elif command == "lmdm":
         dm.use_local_mdm()
