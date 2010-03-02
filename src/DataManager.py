@@ -148,7 +148,6 @@ class DataManager(Pyro.core.ObjBase):
         self.chunk_server_lock.release() # REL
 
     # publish a local file into the DFS
-    # the verify parameter controls usage of checksums
     def put(self, filename, dfs_path = None):
         if not os.path.isfile(filename):
             logging.error("no such file: " + filename)
@@ -206,7 +205,6 @@ class DataManager(Pyro.core.ObjBase):
         else:
             # get them
             for f in wanted_files:
-                print "f:" + f
                 last_slash = rfind('/', f)
                 dirname = ""
                 if last_slash == -1:
@@ -282,17 +280,13 @@ class DataManager(Pyro.core.ObjBase):
             logging.error("no such file: " + dfs_path)
         else:
             all_chunks_available = False
-            trial_num = 0
             while not all_chunks_available:
-                if self.debug: print "trial:" + str(trial_num)
                 remote_chunks = self.find_remote_chunks(meta_info)
-                if self.debug: print remote_chunks
                 # shuffle is here to increase pipelining and parallelization
                 # of transfers
                 random.shuffle(remote_chunks)
                 all_chunks_available = self.download_chunks(remote_chunks,
                                                             only_peek)
-                trial_num += 1
             if all_chunks_available:
                 # dump all chunks from local store to fs_output_path and
                 # in the right order please
