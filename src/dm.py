@@ -24,13 +24,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import commands, logging, os, sys, time
 
-import Pyro.core, Pyro.naming
-
-from tempfile        import TemporaryFile
+import Pyro.core, Pyro.errors
 
 from MetaDataManager import MetaDataManager
 from DataManager     import DataManager
-from Pyro.errors     import NamingError
 
 #pyro_default_port = 7766
 data_objects_port  = 7767
