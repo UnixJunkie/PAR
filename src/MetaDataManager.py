@@ -113,8 +113,22 @@ class MetaDataManager(Pyro.core.ObjBase):
         self.chunks_lock.release()
 
     # shrink nodes list for an existing file chunk
-    def update_remove_node(self, dfs_path, chunk_ID, node_name):
-        pass
+    def update_remove_node(self, chunk_name, publication_host):
+        self.chunks_lock.acquire()
+        self.chunks[chunk_name].remove(publication_host)
+        self.chunks_lock.release()
+
+    # call this upon detection of node failure
+    # WARNING: this could take quite some time if we have many files
+    def node_disappeared(self, node):
+        self.chunks_lock.acquire()
+        for c in self.chunks.keys():
+            try:
+                self.chunks[c].remove(node)
+            except ValueError: # node not in list
+                pass
+        self.nodes[node] = None
+        self.chunks_lock.release()
 
     def started(self):
         return True
