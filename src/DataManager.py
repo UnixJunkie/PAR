@@ -115,7 +115,6 @@ class DataManager(Pyro.core.ObjBase):
 
     # return (False, None) if busy
     #        (True***,  None) if not busy but chunk was not found
-    #                         WARNING: client must update meta data info then?
     #        (True***,  c)    if not busy and chunk found
     # ***IMPORTANT: call got_chunk just after on client side if True was
     #               returned as first in the pair
@@ -218,11 +217,14 @@ class DataManager(Pyro.core.ObjBase):
                     os.makedirs(dirname)
                 self.get(f, dirname + '/' + basename, False, only_peek)
 
+    # raise Exception if a chunk cannot be downloaded
     def download_chunks(self, chunk_and_sums, only_peek = False):
         res = True
         while len(chunk_and_sums) > 0:
             (c, c_sum) = chunk_and_sums.pop(0)
             c_sources = self.mdm.resolve(c)
+            if c_sources == []:
+                raise Exception("can't download chunk: " + c)
             # shuffle is here to increase pipelining and parallelization
             # of transfers
             random.shuffle(c_sources)
@@ -235,29 +237,35 @@ class DataManager(Pyro.core.ObjBase):
                     (request_was_processed, data) = remote_dm.get_chunk(c)
                     if request_was_processed:
                         remote_dm.got_chunk() # unlock the server
+                        if data:
+                            # store chunk locally
+                            verif = None
+                            if c_sum:
+                                verif = md5.new(data).hexdigest()
+                            if verif == c_sum:
+                                downloaded = True
+                                (idx, dfs_path) = self.decode_chunk_name(c)
+                                self.add_local_chunk(idx, dfs_path, data)
+                                if not only_peek:
+                                    self.mdm.update_add_node(dfs_path, idx,
+                                                             self.hostname)
+                                break
+                            else:
+                                logging.error("md5 differ for chunk: "
+                                              + c + " from: " + source +
+                                              " must be: " + c_sum +
+                                              " but is: " + verif)
+                        else:
+                            # chunk disappeared: update meta data
+                            # DM restarted on node?
+                            self.mdm.update_remove_node(c, publication_host)
+                            logging.error("chunk: " + c +
+                                          " not there: " + source)
                     else:
                         logging.debug("busy source: " + source)
-                    if data:
-                        # store chunk locally
-                        verif = None
-                        if c_sum:
-                            verif = md5.new(data).hexdigest()
-                        if verif == c_sum:
-                            downloaded = True
-                            (idx, dfs_path) = self.decode_chunk_name(c)
-                            self.add_local_chunk(idx, dfs_path, data)
-                            if not only_peek:
-                                self.mdm.update_add_node(dfs_path, idx,
-                                                         self.hostname)
-                            break
-                        else:
-                            logging.error("md5 differ for chunk: "
-                                          + c + " from: " + source +
-                                          " must be: " + c_sum +
-                                          " but is: " + verif)
-                    else:
-                        logging.error("chunk: " + c + " not there: " + source)
                 except:
+                    # data node disappeared: update meta data
+                    self.mdm.node_disappeared(source)
                     logging.exception("problem with " + remote_dm_URI)
             if not downloaded:
                 logging.debug("could not download: " + c)
@@ -285,8 +293,12 @@ class DataManager(Pyro.core.ObjBase):
                 # shuffle is here to increase pipelining and parallelization
                 # of transfers
                 random.shuffle(remote_chunks)
-                all_chunks_available = self.download_chunks(remote_chunks,
-                                                            only_peek)
+                try:
+                    all_chunks_available = self.download_chunks(remote_chunks,
+                                                                only_peek)
+                except Exception, e:
+                    logging.exception(e)
+                    break
             if all_chunks_available:
                 # dump all chunks from local store to fs_output_path and
                 # in the right order please
