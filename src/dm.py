@@ -249,8 +249,9 @@ def process_commands(commands_list, dm, interactive):
         else:
             if not param_2:
                 param_2 = os.path.basename(param_1)
-            dm.get(param_1, relative_to_absolute(param_2),
-                   False, command == "peek")
+            if not dm.get(param_1, relative_to_absolute(param_2),
+                          False, command == "peek"):
+                logging.error("could not get:" + param_1)
     elif command in ["mget","mpeek"]:
         if argc not in [2, 3]:
             logging.error("need one or two params")
@@ -263,12 +264,14 @@ def process_commands(commands_list, dm, interactive):
         if argc not in [3]:
             logging.error("need two params")
         else:
-            dm.get(param_1, relative_to_absolute(param_2), True)
+            if not dm.get(param_1, relative_to_absolute(param_2), True):
+                logging.error("could not get:" + param_1)
     elif command == "cat":
         if argc not in [2]:
             logging.error("need one param")
         else:
-            dm.get(param_1, "/dev/stdout")
+            if not dm.get(param_1, "/dev/stdout"):
+                logging.error("could not get:" + param_1)
     elif command in ["q","quit","e","exit"]:
         sys.exit(0)
     else:
