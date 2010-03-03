@@ -303,7 +303,7 @@ if __name__ == '__main__':
     # FBR: remove this -h, user should use the rmdm command instead and
     #      * -h should trigger help message instead
     #      * add start and stop commands with some reference couting in order
-    #        to kill the daemons only if no more used
+    #        to kill the daemons only if no more used on the current machine
     commands_start = 1
     debug          = False
     interactive    = False
