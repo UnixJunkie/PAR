@@ -227,6 +227,12 @@ if __name__ == '__main__':
             l = thread.allocate_lock()
             l.acquire()
             locks.append(l)
+            time.sleep(0.01) # dirty bug correction:
+                             # on multiproc machines, starting threads without
+                             # waiting makes Pyro output this sometimes:
+                             # "Pyro.errors.ProtocolError: unknown object ID"
+                             # It is like if the Pyro daemon is not ready yet
+                             # to handle many new client threads...
             thread.start_new_thread(worker_wrapper, (master, l))
         # feed workers
         if read_from_file:
