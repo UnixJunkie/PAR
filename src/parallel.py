@@ -183,7 +183,7 @@ if __name__ == '__main__':
         demuxer               = options.demuxer
         daemon                = None
         if output_to_file:
-            output_file = open(output_file_option, 'a')
+            output_file = open(output_file_option, 'w')
         if read_from_file:  # mandatory option
             commands_file  = open(commands_file_option, 'r')
         elif not connect_to_server:
