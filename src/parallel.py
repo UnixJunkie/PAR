@@ -82,7 +82,14 @@ def get_nb_procs():
 
 def worker_wrapper(master, lock):
     try:
-        work = master.get_work()
+        not_started = True
+        while not_started:
+            try:
+                work = master.get_work()
+                not_started = False
+            except Pyro.errors.ProtocolError:
+                print "warning: retrying master.get_work()"
+                time.sleep(0.1)
         while work != "":
             # there is a bug in StringIO, calling getvalue on one where it
             # was never written throws an exception instead of returning an
