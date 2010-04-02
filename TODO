@@ -1,7 +1,8 @@
 MUST DO
 -------
 
-* do a code review of dm, DM and MDM
+* make parallel.py work out of the box: without having to set PYTHONPATH
+  in order for Pyro to work
 * add -[de]mux, then introduce data prefetching when this is done to increase
   data transfer overlapping with computation
 * add data node failure management
