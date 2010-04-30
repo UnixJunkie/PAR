@@ -10,3 +10,6 @@ check:
 
 dist: clean
 	cd .. && tar czf par.tgz par
+
+install:
+	mkdir -p ~/bin && cp bin/par.sh ~/bin/par
