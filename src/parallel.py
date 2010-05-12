@@ -85,6 +85,8 @@ def worker_wrapper(master, lock):
         not_started = True
         while not_started:
             try:
+                # FBR: I should add the awk-style BEFORE and END commands here
+                #      init_cmd, final_cmd = master.get_BEFORE_END_commands()
                 work = master.get_work()
                 not_started = False
             except Pyro.errors.ProtocolError:
