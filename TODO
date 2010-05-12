@@ -1,11 +1,13 @@
 MUST DO
 -------
 
-* make parallel.py work out of the box: without having to set PYTHONPATH
-  in order for Pyro to work
+* get rid of Pyro, use MPI 2 instead
+* add data node failure management
+  (reschedule jobs not yet done when all commands were sent once, remove
+  commands from the TODO list only once we received their output)
+  this should get rid of the laggers problem and computing node failure, nice!
 * add -[de]mux, then introduce data prefetching when this is done to increase
   data transfer overlapping with computation
-* add data node failure management
 
 * introduce a lock to prevent multiple downloads at the same time on same dm
 * remove nmput and nput because they introduce possible overlapping of
@@ -27,7 +29,7 @@ NICE TO HAVE
 * add a distributed test and also another but parallel and distributed
   I just did one by hand, it is not so difficult using ssh and commands
   that just sleep some time then echo something else in order to mimic
-  they are CPU [but not data] intensive
+  they are CPU (but not data) intensive
 * think about the security of the client-server model:
   - a client shouldn't accept to execute commands from an untrusted server
     (commands could be any Unix command, including rm)
@@ -73,3 +75,7 @@ JUST DREAMING
   This kind of "special client" should request several jobs at a time, and
   send several results at a time (because he is the proxy for maybe an entire
   cluster, not just a "standard client").
+* a little bit related with previous idea, if nodes have same speed
+  and jobs require same amount of computations, nodes could request
+  several jobs at the same time and do data prefetching for the next job
+  while computing another
