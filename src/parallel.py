@@ -139,6 +139,10 @@ optparse_usage = """Usage: %prog [options] {-i | -c} ...
 Execute commands in a parallel and/or distributed way."""
 
 my_parser = OptionParser(usage = optparse_usage)
+# my_parser.add_option("-b", "--begin",
+#                      dest   = "begin_command", default = "",
+#                      help   = ("command run by a worker before any job "
+#                                "(englobe command in parenthesis)"))
 my_parser.add_option("-c", "--client",
                      dest = "server_name", default = None,
                      help = ("read commands from a server instead of a file "
@@ -146,6 +150,10 @@ my_parser.add_option("-c", "--client",
 my_parser.add_option("-d", "--demux",
                      dest = "demuxer", default = None,
                      help = "specify a demuxer, NOT IMPLEMENTED")
+# my_parser.add_option("-e", "--end",
+#                      dest = "end_command", default = "",
+#                      help = "command run by a worker after last job "
+#                             "(englobe command in parenthesis)")
 my_parser.add_option("-i", "--input",
                      dest = "commands_file", default = None,
                      help = ("/dev/stdin for example "
@@ -161,13 +169,13 @@ my_parser.add_option("-p", "--post",
                      help = ("specify a Python post processing module "
                              "(omit the '.py' extension)"))
 my_parser.add_option("-s", "--server",
-                     action="store_true",
-                     dest = "is_server", default = False,
-                     help = "accept remote workers")
+                     action = "store_true",
+                     dest   = "is_server", default = False,
+                     help   = "accept remote workers")
 my_parser.add_option("-v", "--verbose",
-                     action="store_true",
-                     dest = "is_verbose", default = False,
-                     help = "enable progress bar")
+                     action = "store_true",
+                     dest   = "is_verbose", default = False,
+                     help   = "enable progress bar")
 my_parser.add_option("-w", "--workers",
                      dest = "nb_local_workers", default = None,
                      help = ("number of local worker threads, "
@@ -225,6 +233,7 @@ if __name__ == '__main__':
             usage()
         commands_queue = Queue()
         results_queue  = Queue()
+        #print options.begin_command, options.end_command
         master = Master(commands_queue, results_queue)
         nb_jobs        = 0
         locks          = []
