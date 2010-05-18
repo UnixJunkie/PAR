@@ -41,12 +41,14 @@ from Pyro.errors import PyroError, NamingError, ConnectionClosedError
 from StringIO    import StringIO
 
 class Master(Pyro.core.ObjBase):
-    def __init__(self, commands_q, results_q):
+    def __init__(self, commands_q, results_q, begin_cmd = "", end_cmd = ""):
         Pyro.core.ObjBase.__init__(self)
         self.jobs_queue     = commands_q
         self.results_queue  = results_q
         self.lock           = thread.allocate_lock()
         self.no_more_jobs   = False
+        self.begin_command  = begin_cmd
+        self.end_command    = end_cmd
 
     def get_work(self, previous_result = None):
         if previous_result:
@@ -66,6 +68,9 @@ class Master(Pyro.core.ObjBase):
     def add_job(self, cmd):
         self.jobs_queue.put(cmd)
 
+    def get_begin_end_commands(self):
+        return (self.begin_command, self.end_command)
+
 def get_nb_procs():
     res = None
     try:
@@ -81,17 +86,20 @@ def get_nb_procs():
     return res
 
 def worker_wrapper(master, lock):
+    begin_cmd = ""
+    end_cmd   = ""
     try:
         not_started = True
         while not_started:
             try:
-                # FBR: I should add the awk-style BEFORE and END commands here
-                #      init_cmd, final_cmd = master.get_BEFORE_END_commands()
                 work = master.get_work()
                 not_started = False
             except Pyro.errors.ProtocolError:
                 print "warning: retrying master.get_work()"
                 time.sleep(0.1)
+        (begin_cmd, end_cmd) = master.get_begin_end_commands()
+        if begin_cmd != "":
+            print "worker start: %s" % commands.getoutput(begin_cmd)
         while work != "":
             # there is a bug in StringIO, calling getvalue on one where it
             # was never written throws an exception instead of returning an
@@ -114,6 +122,8 @@ def worker_wrapper(master, lock):
     except ConnectionClosedError: # server closed because no more jobs to send
         pass
     #print "no more jobs for me, leaving"
+    if end_cmd != "":
+        print "worker stop: %s" % commands.getoutput(end_cmd)
     lock.release()
 
 pyro_daemon_loop_cond = True
