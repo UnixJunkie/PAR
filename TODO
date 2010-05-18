@@ -1,6 +1,8 @@
 MUST DO
 -------
 
+* process -b and -e via sys.argv directly, then overwrite the option value
+  stored by optargs
 * get rid of Pyro, use MPI 2 instead
 * add data node failure management
   (reschedule jobs not yet done when all commands were sent once, remove
