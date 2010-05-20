@@ -1,8 +1,6 @@
 MUST DO
 -------
 
-* process -b and -e via sys.argv directly, then overwrite the option value
-  stored by optargs
 * get rid of Pyro, use MPI 2 instead
 * add --load-probe option to pause/resume jobs depending on load
   give a signal number as parameter, so that people can say their software
