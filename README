@@ -26,5 +26,7 @@ cat test_parallel.input | ./parallel.py -i /dev/stdin -v
 # 1) server side
 ./parallel.py -v -i many_commands.sh -o par_many_commands.log -s
 # 2) client side, on each machine you want to join the computation
-./parallel.py -c [nameserver_hostname] 9090
+#    replace SERVER_NAME by the machine name from where you launched
+#    parallel.py using -s
+./parallel.py -c SERVER_NAME
 # 3) be thrilled! ;)
