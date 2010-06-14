@@ -108,8 +108,10 @@ def usage():
     lsn                             - list nodes holding chunks
     nget  local_dir  dfs_dir   n    - node get: local put then remote get
                                       from node n (nodes must use same MDM)
+                                      TO BE REMOVED SOON
     nmget local_dir  [dfs_dir] n    - node mget, local mput then remote mget
                                       from node n (nodes must use same MDM)
+                                      TO BE REMOVED SOON
     """
 
 def process_commands(commands_list, dm, interactive):
