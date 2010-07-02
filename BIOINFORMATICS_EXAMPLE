@@ -1,0 +1,28 @@
+# How to compute CARMSD for many PDB files
+
+# You need a wrapper to your CARMSD computing software.
+# If you are using TM-score, you can create a wrapper
+# like the following and save it in ~/bin/ca_rmsd
+# for example.
+
+--- wrapper file ---
+#!/bin/bash
+[ "$#" -ne "2" ] && exit 1 || tmscore $1 $2 | awk '/^RMSD/{print $6}'
+--- wrapper file ---
+
+# don't forget to enable its use
+chmod 755 ~/bin/ca_rmsd
+
+# With such a wrapper, a user can compute many CARMSD by creating a
+# file containing all the commands to execute.
+# For example, if you are in the same directory than your many PDB files,
+# you could issue the following command:
+
+ls | egrep '\.pdb$' | awk '{print ``tmscore ''$1'' 1m6t.pdb''}' > \
+compute_RMSDs.sh
+
+# Once this file is created, parallel.py can be called.
+# It will use all the cores of your machine and
+# kindly refresh a completion percentage while the job is progressing.
+
+parallel.py -v -i compute_RMSDs.sh -o RMSDs.txt
