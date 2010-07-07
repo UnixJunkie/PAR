@@ -1,7 +1,8 @@
 MUST DO
 -------
 
-* get rid of Pyro, use MPI 2 instead
+* add a -z option to the master to enable compression of commands and results
+* get rid of Pyro, use MPI 2 instead?
 * add --load-probe option to pause/resume jobs depending on load
   give a signal number as parameter, so that people can say their software
   to checkpoint
@@ -10,11 +11,9 @@ MUST DO
   commands from the TODO list only once we received their output)
   this should get rid of the laggers problem and computing node failure, nice!
 * add -[de]mux, then introduce data prefetching when this is done to increase
-  data transfer overlapping with computation
+  data transfer overlap with computation
 
 * introduce a lock to prevent multiple downloads at the same time on same dm
-* remove nmput and nput because they introduce possible overlapping of
-  upload and download and they are kind of dirty compared to other commands?
 * the get command and its dirty lock can be done safer if we use an object
   provided by the getter, then in the same layer we can do everything
 * allow to compress on put, almost same system than using checksums
