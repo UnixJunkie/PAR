@@ -1,3 +1,14 @@
+
+If you use this software, please cite the corresponding publication:
+
+@article{Berenger2010,
+author = {Berenger, Francois and Coti, Camille and Zhang, Kam Y. J.},
+title = {{PAR: A PARallel And Distributed Job Crusher}},
+doi = {10.1093/bioinformatics/btq542},
+year = {2010},
+journal = {Bioinformatics}
+}
+
 # you need to install Pyro, cf. http://pyro.sourceforge.net
 # (sudo yum install pyro _OR_ sudo aptitude install pyro)
 # On the server, TCP port 7766 must be open
