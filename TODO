@@ -1,30 +1,36 @@
 MUST DO
 -------
 
-* add a -z option to the master to enable compression of commands and results
-* get rid of Pyro, use MPI 2 instead?
+* add workers node failure management
+  (reschedule jobs not yet done, FIFO, when all commands were sent once, remove
+  commands from the TODO list only once we received their output)
+  Each command should have a list of identifiers.
+  If the command is resent, a new identifier should be added to the list.
+  Reception of any of the correct identifiers should complete the corresponding
+  comment.
+  Results with unknown identifiers are logged.
+
+* add a -z option to enable compression of commands/results
+* add a -c option to encrypt commands/results
+
 * add --load-probe option to pause/resume jobs depending on load
   give a signal number as parameter, so that people can say their software
   to checkpoint
-* add data node failure management
-  (reschedule jobs not yet done when all commands were sent once, remove
-  commands from the TODO list only once we received their output)
-  this should get rid of the laggers problem and computing node failure, nice!
-* add -[de]mux, then introduce data prefetching when this is done to increase
-  data transfer overlap with computation
 
-* introduce a lock to prevent multiple downloads at the same time on same dm
-* the get command and its dirty lock can be done safer if we use an object
-  provided by the getter, then in the same layer we can do everything
-* allow to compress on put, almost same system than using checksums
-
-* find a faster way to wait for the daemon to be started?
 * start processing results before workers are finished
   do we really need locks in worker threads?
 * use the same logger than DataManager.py in parallel.py instead of print
   use a shorter log format for time also
 * main became a pretty big function, cut it into sub-functions so we
   can read it on one screen
+
+* rewrite using UDP once worker failure is supported?
+  - rewrite using simple sockets and no more Pyro?
+    (server would call poll then)
+
+* add requesting groups of jobs instead of one at a time
+
+* support being client of another PAR server and accepting clients
 
 NICE TO HAVE
 ------------
@@ -53,15 +59,8 @@ NICE TO HAVE
        ignored.
     3) Workers can encrypt their results like the server does for commands:
        (compress | encrypt | sign).
-  Here is another encryption idea for paranoid users ("one time pad" style):
-    1) The server has a different random data source for each client
-       (a cryptographic random number generator initialized differently for
-        each client should be enough for non paranoid users)
-    2) Each client also has the same random data source than the one the
-       server is using to communicate with it
-    3) Encryption: compress | one time pad [| sign ?]
-    4) Decryption: [ verif sign? |] unpad | decompress
-    5) random data must never be used twice (forward only in the random pool)
+  Also, look at some MPI document you saw with a simple security model.
+
 * profile with the python profiler
 * add a code coverage test, python is not compiled and pychecker is too
   light at checking things
