@@ -41,6 +41,7 @@ from Pyro.errors import PyroError, NamingError, ConnectionClosedError
 from StringIO    import StringIO
 
 class Master(Pyro.core.ObjBase):
+
     def __init__(self, commands_q, results_q, begin_cmd = "", end_cmd = ""):
         Pyro.core.ObjBase.__init__(self)
         self.jobs_queue     = commands_q
@@ -74,9 +75,8 @@ class Master(Pyro.core.ObjBase):
 def get_nb_procs():
     res = None
     try:
-        # Linux
-        # FBR: this can be obtained without a command, do it!
-        res = int(commands.getoutput("egrep -c '^processor' /proc/cpuinfo"))
+        # POSIX
+        res = os.sysconf('SC_NPROCESSORS_ONLN')
     except:
         try:
             # {Free|Net|Open}BSD and MacOS X
