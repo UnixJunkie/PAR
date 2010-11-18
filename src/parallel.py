@@ -126,6 +126,7 @@ def worker_wrapper(master, lock):
         print "worker stop: %s" % commands.getoutput(end_cmd)
     lock.release()
 
+default_pyro_port     = 7766
 pyro_daemon_loop_cond = True
 
 # a pair parameter is required by start_new_thread,
@@ -164,7 +165,13 @@ my_parser.add_option("-m", "--mux",
 my_parser.add_option("-o", "--output",
                      dest = "output_file", default = None,
                      help = "log to a file instead of stdout")
-my_parser.add_option("-p", "--post",
+my_parser.add_option("-p", "--port",
+                     dest = "server_port", default = default_pyro_port,
+                     help = ("use a specific port number instead of Pyro's "
+                             "default one (useful in case of firewall or "
+                             "to have several independant servers running "
+                             "on the same host computer)"))
+my_parser.add_option("--post-proc",
                      dest = "post_proc", default = None,
                      help = ("specify a Python post processing module "
                              "(omit the '.py' extension)"))
@@ -186,8 +193,6 @@ my_parser.add_option("-w", "--workers",
 def usage():
     my_parser.print_help()
     sys.exit(0)
-
-default_pyro_port = 7766
 
 if __name__ == '__main__':
     try:
@@ -239,7 +244,12 @@ if __name__ == '__main__':
         locks          = []
         if is_server:
             Pyro.core.initServer()
-            daemon = Pyro.core.Daemon()
+            try:
+                daemon = Pyro.core.Daemon(port    = int(options.server_port),
+                                          norange = True)
+            except Pyro.errors.DaemonError:
+                print "error: port already used, probably"
+                sys.exit(1)
             # publish objects
             uri = daemon.connect(master, 'master')
             #print uri # debug
@@ -247,7 +257,7 @@ if __name__ == '__main__':
         if connect_to_server:
             # replace master by its proxy for the remote object
             uri = ("PYROLOC://" + remote_server_name + ":" +
-                   str(default_pyro_port) + "/master")
+                   str(options.server_port) + "/master")
             #print uri # debug
             master = Pyro.core.getProxyForURI(uri)
         # start workers
