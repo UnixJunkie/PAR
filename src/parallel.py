@@ -107,8 +107,7 @@ def worker_wrapper(master, lock):
             # was never written throws an exception instead of returning an
             # empty string
             cmd_out = StringIO()
-            # FBR: use formated prints instead of string concats
-            cmd_out.write("i:" + work)
+            cmd_out.write("i:%s" % work)
             cmd_stdout = tempfile.TemporaryFile()
             cmd_stderr = tempfile.TemporaryFile()
             p = Popen(work, shell=True, stdout=cmd_stdout, stderr=cmd_stderr,
@@ -118,10 +117,10 @@ def worker_wrapper(master, lock):
             cmd_stdout.seek(0)
             cmd_stderr.seek(0)
             for l in cmd_stdout:
-                cmd_out.write("o:" + l)
+                cmd_out.write("o:%s" % l)
             cmd_stdout.close()
             for l in cmd_stderr:
-                cmd_out.write("e:" + l)
+                cmd_out.write("e:%s" % l)
             cmd_stderr.close()
             in_out_err = cmd_out.getvalue()
             cmd_out.close()
