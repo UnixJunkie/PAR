@@ -1,4 +1,5 @@
-#!/usr/bin/env python2.4
+#!/usr/bin/env python
+# must use python 2.4 or higher
 
 """
 If you use and like our software, please send us a postcard! ^^
