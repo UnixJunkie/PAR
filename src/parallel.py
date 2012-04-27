@@ -30,7 +30,7 @@ warning: keep this script compatible with python 2.4 so that we can run it
          on old systems too
 """
 
-import commands, os, socket, sys, time, thread
+import commands, os, socket, subprocess, sys, tempfile, time, thread
 import Pyro.core, Pyro.naming
 
 from optparse    import OptionParser
@@ -40,6 +40,7 @@ from Queue       import Queue, Empty
 from ProgressBar import ProgressBar
 from Pyro.errors import PyroError, NamingError, ConnectionClosedError
 from StringIO    import StringIO
+from subprocess  import Popen
 
 class Master(Pyro.core.ObjBase):
 
@@ -106,15 +107,22 @@ def worker_wrapper(master, lock):
             # was never written throws an exception instead of returning an
             # empty string
             cmd_out = StringIO()
+            # FBR: use formated prints instead of string concats
             cmd_out.write("i:" + work)
-            stdin, stdout, stderr = os.popen3(work)
-            stdin.close()
-            for l in stdout:
+            cmd_stdout = tempfile.TemporaryFile()
+            cmd_stderr = tempfile.TemporaryFile()
+            p = Popen(work, shell=True, stdout=cmd_stdout, stderr=cmd_stderr,
+                      close_fds=True)
+            p.wait() # wait for the command to complete
+            # rewind its stdout and stderr files
+            cmd_stdout.seek(0)
+            cmd_stderr.seek(0)
+            for l in cmd_stdout:
                 cmd_out.write("o:" + l)
-            stdout.close()
-            for l in stderr:
+            cmd_stdout.close()
+            for l in cmd_stderr:
                 cmd_out.write("e:" + l)
-            stderr.close()
+            cmd_stderr.close()
             in_out_err = cmd_out.getvalue()
             cmd_out.close()
             # FBR: compression hook should be here
