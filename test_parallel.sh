@@ -29,7 +29,7 @@ if [ ! -f /proc/cpuinfo ] ; then
     nb_procs="-w 2"
 fi
 
-cat test_parallel.input | ./src/parallel.py -i /dev/stdin $nb_procs \
+cat test_parallel.input | ./bin/par.sh -i /dev/stdin $nb_procs \
 | egrep "^o:" | sed "s/^o://g" | sort -n > test_parallel.output
 
 diff test_parallel.output test_parallel.output.reference
