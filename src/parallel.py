@@ -32,7 +32,7 @@ warning: keep this script compatible with python 2.4 so that we can run it
 
 import commands, os, socket, subprocess, sys, tempfile, time, thread
 
-import rfoo                                                           # CC
+import rfoo
 
 from optparse    import OptionParser
 from threading   import Thread
@@ -42,7 +42,7 @@ from ProgressBar import ProgressBar
 from StringIO    import StringIO
 from subprocess  import Popen
 
-class Master( rfoo.BaseHandler ):                                     # CC
+class Master(rfoo.BaseHandler):
 
     def __init__(self, commands_q, results_q, begin_cmd = "", end_cmd = ""):
         self.jobs_queue     = commands_q
@@ -96,8 +96,7 @@ def worker_wrapper(master, lock):
                 work = master.get_work()
                 not_started = False
             except:
-                import sys                                            # CC
-                print "Exception :", sys.exc_type, sys.exc_value      # CC
+                print "Exception :", sys.exc_type, sys.exc_value
                 print "warning: retrying master.get_work()"
                 time.sleep(0.1)
         (begin_cmd, end_cmd) = master.get_begin_end_commands()
@@ -135,7 +134,7 @@ def worker_wrapper(master, lock):
         print "worker stop: %s" % commands.getoutput(end_cmd)
     lock.release()
 
-default_rfoo_port     = rfoo.DEFAULT_PORT                             # CC
+default_rfoo_port     = rfoo.DEFAULT_PORT
 rfoo_daemon_loop_cond = True
 
 optparse_usage = """Usage: %prog [options] {-i | -c} ...
@@ -245,13 +244,13 @@ if __name__ == '__main__':
         nb_jobs        = 0
         locks          = []
         if is_server:
-            rfoo.start_server( host=host, 
-                               port=int(options.server_port), 
-                               handler=Master)                        # CC
+            rfoo.start_server(host = host,
+                              port = int(options.server_port),
+                              handler = Master)
         if connect_to_server:
-            master = rfoo.connect( host=remote_server_name, 
-                                   port=int(options.server_port) )    # CC
-            
+            master = rfoo.connect(host = remote_server_name,
+                                  port = int(options.server_port))
+
         # start workers
         for i in range(nb_threads):
             l = thread.allocate_lock()
@@ -306,8 +305,8 @@ if __name__ == '__main__':
         for l in locks:
             l.acquire()
         # Nothing to close server-side -- close the clients' connections
-        if not is_server:                                             # CC
-            master.close()                                            # CC
+        if not is_server:
+            master.close()
     except SystemExit:
         pass
     except: # unexpected one
