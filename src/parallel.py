@@ -31,21 +31,20 @@ warning: keep this script compatible with python 2.4 so that we can run it
 """
 
 import commands, os, socket, subprocess, sys, tempfile, time, thread
-import Pyro.core, Pyro.naming
+
+import rfoo                                                           # CC
 
 from optparse    import OptionParser
 from threading   import Thread
 
 from Queue       import Queue, Empty
 from ProgressBar import ProgressBar
-from Pyro.errors import PyroError, NamingError, ConnectionClosedError
 from StringIO    import StringIO
 from subprocess  import Popen
 
-class Master(Pyro.core.ObjBase):
+class Master( rfoo.BaseHandler ):                                     # CC
 
     def __init__(self, commands_q, results_q, begin_cmd = "", end_cmd = ""):
-        Pyro.core.ObjBase.__init__(self)
         self.jobs_queue     = commands_q
         self.results_queue  = results_q
         self.lock           = thread.allocate_lock()
@@ -96,7 +95,9 @@ def worker_wrapper(master, lock):
             try:
                 work = master.get_work()
                 not_started = False
-            except Pyro.errors.ProtocolError:
+            except:
+                import sys                                            # CC
+                print "Exception :", sys.exc_type, sys.exc_value      # CC
                 print "warning: retrying master.get_work()"
                 time.sleep(0.1)
         (begin_cmd, end_cmd) = master.get_begin_end_commands()
@@ -134,15 +135,8 @@ def worker_wrapper(master, lock):
         print "worker stop: %s" % commands.getoutput(end_cmd)
     lock.release()
 
-default_pyro_port     = 7766
-pyro_daemon_loop_cond = True
-
-# a pair parameter is required by start_new_thread,
-# hence the unused '_' parameter
-def master_wrapper(daemon, _):
-    # start infinite loop
-    print 'Master started'
-    daemon.requestLoop(condition=lambda: pyro_daemon_loop_cond)
+default_rfoo_port     = rfoo.DEFAULT_PORT                             # CC
+rfoo_daemon_loop_cond = True
 
 optparse_usage = """Usage: %prog [options] {-i | -c} ...
 Execute commands in a parallel and/or distributed way."""
@@ -174,8 +168,8 @@ my_parser.add_option("-o", "--output",
                      dest = "output_file", default = None,
                      help = "log to a file instead of stdout")
 my_parser.add_option("-p", "--port",
-                     dest = "server_port", default = default_pyro_port,
-                     help = ("use a specific port number instead of Pyro's "
+                     dest = "server_port", default = default_rfoo_port,
+                     help = ("use a specific port number instead of rfoo's "
                              "default one (useful in case of firewall or "
                              "to have several independant servers running "
                              "on the same host computer)"))
@@ -251,23 +245,13 @@ if __name__ == '__main__':
         nb_jobs        = 0
         locks          = []
         if is_server:
-            Pyro.core.initServer()
-            try:
-                daemon = Pyro.core.Daemon(port    = int(options.server_port),
-                                          norange = True)
-            except Pyro.errors.DaemonError:
-                print "error: port already used, probably"
-                sys.exit(1)
-            # publish objects
-            uri = daemon.connect(master, 'master')
-            #print uri # debug
-            thread.start_new_thread(master_wrapper, (daemon, None))
+            rfoo.start_server( host=host, 
+                               port=int(options.server_port), 
+                               handler=Master)                        # CC
         if connect_to_server:
-            # replace master by its proxy for the remote object
-            uri = ("PYROLOC://" + remote_server_name + ":" +
-                   str(options.server_port) + "/master")
-            #print uri # debug
-            master = Pyro.core.getProxyForURI(uri)
+            master = rfoo.connect( host=remote_server_name, 
+                                   port=int(options.server_port) )    # CC
+            
         # start workers
         for i in range(nb_threads):
             l = thread.allocate_lock()
@@ -279,6 +263,7 @@ if __name__ == '__main__':
                              # "Pyro.errors.ProtocolError: unknown object ID"
                              # It is like if the Pyro daemon is not ready yet
                              # to handle many new client threads...
+                             # CC: is it still necessary with rfoo instead of Pyro?
             thread.start_new_thread(worker_wrapper, (master, l))
         # feed workers
         if read_from_file:
@@ -313,17 +298,16 @@ if __name__ == '__main__':
                     else:
                         sys.stdout.write(cmd_and_output)
             # cleanup
-            pyro_daemon_loop_cond = False
+            rfoo_daemon_loop_cond = False
             commands_file.close()
             if output_to_file:
                 output_file.close()
         # wait for everybody
         for l in locks:
             l.acquire()
-        # stop pyro server-side stuff
-        if is_server:
-            daemon.disconnect(master)
-            daemon.shutdown()
+        # Nothing to close server-side -- close the clients' connections
+        if not is_server:                                             # CC
+            master.close()                                            # CC
     except SystemExit:
         pass
     except: # unexpected one
