@@ -134,8 +134,7 @@ def worker_wrapper(master, lock):
         print "worker stop: %s" % commands.getoutput(end_cmd)
     lock.release()
 
-default_rfoo_port     = rfoo.DEFAULT_PORT
-rfoo_daemon_loop_cond = True
+default_rfoo_port = rfoo.DEFAULT_PORT
 
 optparse_usage = """Usage: %prog [options] {-i | -c} ...
 Execute commands in a parallel and/or distributed way."""
@@ -256,13 +255,6 @@ if __name__ == '__main__':
             l = thread.allocate_lock()
             l.acquire()
             locks.append(l)
-            time.sleep(0.01) # dirty bug correction:
-                             # on multiproc machines, starting threads without
-                             # waiting makes Pyro output this sometimes:
-                             # "Pyro.errors.ProtocolError: unknown object ID"
-                             # It is like if the Pyro daemon is not ready yet
-                             # to handle many new client threads...
-                             # CC: is it still necessary with rfoo instead of Pyro?
             thread.start_new_thread(worker_wrapper, (master, l))
         # feed workers
         if read_from_file:
@@ -297,7 +289,6 @@ if __name__ == '__main__':
                     else:
                         sys.stdout.write(cmd_and_output)
             # cleanup
-            rfoo_daemon_loop_cond = False
             commands_file.close()
             if output_to_file:
                 output_file.close()
