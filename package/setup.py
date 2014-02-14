@@ -30,5 +30,8 @@ setup(
         "Operating System :: POSIX",
         "Programming Language :: Python",
     ],
+    install_requires=[
+        'pyro',
+    ],
     zip_safe=False,
 )
