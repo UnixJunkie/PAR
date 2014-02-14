@@ -1,5 +1,7 @@
-PACKAGE = "par"
-NAME = "PAR"
+from setuptools import setup
+
+PACKAGE = "par_parallel"
+NAME = "par_parallel"
 DESCRIPTION = "PAR: a PARallel and distributed job crusher"
 AUTHOR = "Francois Berenger"
 AUTHOR_EMAIL = "berenger@riken.jp"
@@ -10,16 +12,11 @@ setup(
     name=NAME,
     version=VERSION,
     description=DESCRIPTION,
-    long_description=read("README.rst"),
     author=AUTHOR,
     author_email=AUTHOR_EMAIL,
     license="GPL",
     url=URL,
-    packages=find_packages(exclude=["tests.*", "tests"]),
-    package_data=find_package_data(
-			PACKAGE,
-			only_in_packages=False
-	  ),
+    packages=["par_parallel"],
     classifiers=[
         "Development Status :: 6 - Mature",
         "Environment :: Console",
