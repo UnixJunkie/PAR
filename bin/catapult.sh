@@ -2,7 +2,11 @@
 
 set -x
 
-# FBR: enforce use of 3 params
+# enforce parameters
+if [ "$#" != "3" ] ; then
+    echo "usage: "$0" par_exe_path server_name machinefile"
+    exit 1
+fi
 
 par_exe=$1
 server=$2
