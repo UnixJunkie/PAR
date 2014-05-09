@@ -16,11 +16,11 @@ machinefile=$3
 
 # start workers on machines without an nprocs limit in the machinefile
 for m in `grep -v ':' $machinefile` ; do
-    ssh $m "nohup $par_exe -c $server < /dev/null 2>&1 > /dev/null &"
+    ssh -n -f $m "nohup $par_exe -c $server < /dev/null 2>&1 > /dev/null &"
 done
 # start remaining workers
 for line in `grep ':' $machinefile` ; do
     m=`echo $line | cut -d':' -f1`
     nprocs=`echo $line | cut -d':' -f2`
-    ssh $m "nohup $par_exe -c $server -w $nprocs < /dev/null 2>&1 > /dev/null &"
+    ssh -n -f $m "nohup $par_exe -c $server -w $nprocs < /dev/null 2>&1 > /dev/null &"
 done
