@@ -20,9 +20,17 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 import sys
+import time
+
+# seconds to (hour, min, second)
+def seconds_to_h_m_s(dt_s):
+  h = int(dt_s / 3600)
+  m = int((dt_s - (h * 3600)) / 60)
+  s = dt_s - (h * 3600) - (m * 60)
+  return (h, m, s)
 
 class ProgressBar:
-    
+
   def __init__(self, min_val, max_val):
     self.min      = float(min_val)
     self.max      = float(max_val)
@@ -30,17 +38,27 @@ class ProgressBar:
     self.done     = 0
     self.current  = "done: %3d " % self.done + "%"
     self.previous = None
+    self.start    = time.time()
     self.update(0)
 
   def update(self, new_amount):
     if self.width > 0.0:
+      now          = time.time()
+      dt_s         = now - self.start
       new_amount   = float(new_amount)
       new_amount   = max(new_amount, self.min)
-      new_amount   = min(new_amount, self.max)      
+      new_amount   = min(new_amount, self.max)
       self.done    = new_amount
       delta        = self.done - self.min
-      percent      = int(round((delta / self.width) * 100.0))
-      self.current = "done: %3d " % percent + "%"
+      done_frac    = float(delta / self.width)
+      percent      = int(round(done_frac * 100.0))
+      if done_frac > 0:
+        # estimated_total - already_elapsed
+        eta_s = (dt_s / done_frac) - dt_s
+        h, m, s = seconds_to_h_m_s(eta_s)
+        self.current = "done: %3d%% ETA: %dh%02dmin%02ds" % (percent, h, m, s)
+      else:
+        self.current = "done:   0% ETA: ???"
 
   def draw(self):
     if self.current != self.previous:
